@@ -161,20 +161,10 @@ function Piece:SetPlaying(on, speed)
     end
 end
 
--- own: the bar's Animation colors are the accent, the class pair or two picked
--- colours. Then the effect wears exactly those (the first colour as its body,
--- the second lit up for the end), not the preset's own theme.
-local WHITE = { 1, 1, 1 }
-function Piece:Tint(lo, hi, strength, own)
+function Piece:Tint(lo, hi, strength)
     local fill = self.bar:GetStatusBarTexture()
     for _, tex in ipairs(self.all) do Style.SameMasks(tex, fill, true) end
-    local look, base, light = self.look
-    if own and lo and hi then
-        base, light = lo, mix(hi, WHITE, 0.45)
-    else
-        base, light = mix(baseColor(hi), look.theme, look.lean), look.light
-    end
-    local sheet, rim, flash, glow = look.tints(base, light)
+    local sheet, rim, flash, glow = self.look.tints(baseColor(hi))
     self.sheet:SetVertexColor(sheet[1], sheet[2], sheet[3], strength)
     if self.glow and glow then self.glow:SetVertexColor(glow[1], glow[2], glow[3], strength) end
     self.rim:SetVertexColor(rim[1], rim[2], rim[3], strength * 0.85)
@@ -189,13 +179,10 @@ function Piece:Flash(dir, size)
 end
 
 -- One preset, in the shape BarFx.Add takes. look: name (its sheets), loop
--- (seconds), theme (its colour), lean (how far the bar's colour leans to it),
--- light (its pale shade), tints(base, light) -> sheet, rim, flash and glow
--- colours, blend ("ADD", or "BLEND" for a sheet that darkens), glow (a
--- second, added sheet).
-local function preset(name, loop, theme, lean, light, tints, blend, glow)
-    local look = { name = name, loop = loop, theme = theme, lean = lean, light = light, tints = tints,
-        blend = blend, glow = glow }
+-- (seconds), tints(hi) -> sheet, rim, flash and glow colours, blend ("ADD",
+-- or "BLEND" for a sheet that darkens), glow (a second, added sheet).
+local function preset(name, loop, tints, blend, glow)
+    local look = { name = name, loop = loop, tints = tints, blend = blend, glow = glow }
     local key = "blasta" .. name
     return {
         build = function(s)
@@ -210,9 +197,7 @@ local function preset(name, loop, theme, lean, light, tints, blend, glow)
             return piece
         end,
         layout = function(s, piece, w, h) piece:Arrange(h) end,
-        paint = function(s, piece, lo, hi, strength)
-            piece:Tint(lo, hi, strength, BarFx.Get(s, "colors") ~= "bar")
-        end,
+        paint = function(s, piece, lo, hi, strength) piece:Tint(lo, hi, strength) end,
         show = function(s, piece, on) piece:SetPlaying(on, s.speed) end,
         kick = function(s, piece, dir, size) piece:Flash(dir, size) end,
     }
@@ -243,72 +228,82 @@ end)
 -- Frost: a cold shimmer on the end, fine rime creeping in and out along it,
 -- glints on the longer needles and snow drifting back through the fill.
 local ICE, ICE_WHITE = { 0.72, 0.9, 1 }, { 0.92, 0.98, 1 }
-BarFx.Add("blastafrost", label("blastafrost", "Frost (Blasta)"), preset("frost", 4.8, ICE, 0.7, ICE_WHITE, function(cold, light)
-    return mix(cold, light, 0.35), light, mix(cold, light, 0.6)
+BarFx.Add("blastafrost", label("blastafrost", "Frost (Blasta)"), preset("frost", 4.8, function(hi)
+    local cold = mix(hi, ICE, 0.7)
+    return mix(cold, ICE_WHITE, 0.35), ICE_WHITE, mix(cold, ICE_WHITE, 0.6)
 end))
 
 -- Arcane: runes drifting back through the fill and fading out, motes, and
 -- small arcs crackling on the end.
 local ARCANE, ARCANE_WHITE = { 0.78, 0.5, 1 }, { 0.98, 0.9, 1 }
-BarFx.Add("blastaarcane", label("blastaarcane", "Arcane (Blasta)"), preset("arcane", 4.2, ARCANE, 0.75, ARCANE_WHITE, function(magic, light)
-    return mix(magic, light, 0.25), light, mix(magic, light, 0.55)
+BarFx.Add("blastaarcane", label("blastaarcane", "Arcane (Blasta)"), preset("arcane", 4.2, function(hi)
+    local magic = mix(hi, ARCANE, 0.75)
+    return mix(magic, ARCANE_WHITE, 0.25), ARCANE_WHITE, mix(magic, ARCANE_WHITE, 0.55)
 end))
 
 -- Holy: soft slanted rays gliding back through the fill, twinkling glitter and
 -- a warm end.
 local HOLY, HOLY_WHITE = { 1, 0.82, 0.45 }, { 1, 0.98, 0.88 }
-BarFx.Add("blastaholy", label("blastaholy", "Holy (Blasta)"), preset("holy", 5.2, HOLY, 0.75, HOLY_WHITE, function(gold, light)
-    return mix(gold, light, 0.3), light, mix(gold, light, 0.6)
+BarFx.Add("blastaholy", label("blastaholy", "Holy (Blasta)"), preset("holy", 5.2, function(hi)
+    local gold = mix(hi, HOLY, 0.75)
+    return mix(gold, HOLY_WHITE, 0.3), HOLY_WHITE, mix(gold, HOLY_WHITE, 0.6)
 end))
 
 -- Nature: leaves tumbling back through the fill, green motes, and vines
 -- curling out of the end and back.
 local LEAF, LEAF_LIGHT = { 0.55, 1, 0.45 }, { 0.9, 1, 0.82 }
-BarFx.Add("blastanature", label("blastanature", "Nature (Blasta)"), preset("nature", 5.6, LEAF, 0.7, LEAF_LIGHT, function(green, light)
-    return mix(green, light, 0.25), light, mix(green, light, 0.55)
+BarFx.Add("blastanature", label("blastanature", "Nature (Blasta)"), preset("nature", 5.6, function(hi)
+    local green = mix(hi, LEAF, 0.7)
+    return mix(green, LEAF_LIGHT, 0.25), LEAF_LIGHT, mix(green, LEAF_LIGHT, 0.55)
 end))
 
 -- Shadowflame: violet flames licking back from the end over a light dark
 -- smoke. The smoke darkens the fill (BLEND); the flames are a second, added
 -- sheet in step with it.
 local SMOKE, VIOLET, VIOLET_WHITE = { 1, 1, 1 }, { 0.72, 0.45, 1 }, { 0.95, 0.88, 1 }
-BarFx.Add("blastashadow", label("blastashadow", "Shadowflame (Blasta)"), preset("shadow", 6, VIOLET, 0.75, VIOLET_WHITE, function(flame, light)
-    return SMOKE, mix(flame, light, 0.3), mix(flame, light, 0.5), mix(flame, light, 0.15)
+BarFx.Add("blastashadow", label("blastashadow", "Shadowflame (Blasta)"), preset("shadow", 6, function(hi)
+    local flame = mix(hi, VIOLET, 0.75)
+    return SMOKE, mix(flame, VIOLET_WHITE, 0.3), mix(flame, VIOLET_WHITE, 0.5), mix(flame, VIOLET_WHITE, 0.15)
 end, "BLEND", "shadowglow"))
 
 -- Lava: molten rock glowing on the end and flowing slowly back, cracks glowing
 -- through the cooling crust behind it, and heat bubbles swelling and popping.
 local MOLTEN, MOLTEN_HOT = { 1, 0.55, 0.2 }, { 1, 0.9, 0.62 }
-BarFx.Add("blastalava", label("blastalava", "Lava (Blasta)"), preset("lava", 6.4, MOLTEN, 0.8, MOLTEN_HOT, function(hot, light)
-    return mix(hot, light, 0.2), light, mix(hot, light, 0.5)
+BarFx.Add("blastalava", label("blastalava", "Lava (Blasta)"), preset("lava", 6.4, function(hi)
+    local hot = mix(hi, MOLTEN, 0.8)
+    return mix(hot, MOLTEN_HOT, 0.2), MOLTEN_HOT, mix(hot, MOLTEN_HOT, 0.5)
 end))
 
 -- Radiance: a golden seal turning on the end, a shield of light swelling over
 -- it, and sparks of light lifting off and drifting back.
 local GOLD, GOLD_WHITE = { 1, 0.8, 0.4 }, { 1, 0.97, 0.85 }
-BarFx.Add("blastaradiance", label("blastaradiance", "Radiance (Blasta)"), preset("radiance", 6.4, GOLD, 0.8, GOLD_WHITE, function(gold, light)
-    return mix(gold, light, 0.25), light, mix(gold, light, 0.6)
+BarFx.Add("blastaradiance", label("blastaradiance", "Radiance (Blasta)"), preset("radiance", 6.4, function(hi)
+    local gold = mix(hi, GOLD, 0.8)
+    return mix(gold, GOLD_WHITE, 0.25), GOLD_WHITE, mix(gold, GOLD_WHITE, 0.6)
 end))
 
 -- Wild: arrows whistling back through the fill with streaks behind them,
 -- feathers tumbling after, and a warm amber end.
 local AMBER, AMBER_LIGHT = { 1, 0.7, 0.32 }, { 1, 0.94, 0.8 }
-BarFx.Add("blastawild", label("blastawild", "Wild (Blasta)"), preset("wild", 5.2, AMBER, 0.7, AMBER_LIGHT, function(amber, light)
-    return mix(amber, light, 0.3), light, mix(amber, light, 0.55)
+BarFx.Add("blastawild", label("blastawild", "Wild (Blasta)"), preset("wild", 5.2, function(hi)
+    local amber = mix(hi, AMBER, 0.7)
+    return mix(amber, AMBER_LIGHT, 0.3), AMBER_LIGHT, mix(amber, AMBER_LIGHT, 0.55)
 end))
 
 -- Storm: forked lightning leaping back from the end now and then, its
 -- afterglow fading, and rain slanting through the fill.
 local STORM, STORM_WHITE = { 0.5, 0.75, 1 }, { 0.92, 0.97, 1 }
-BarFx.Add("blastastorm", label("blastastorm", "Storm (Blasta)"), preset("storm", 6, STORM, 0.75, STORM_WHITE, function(sky, light)
-    return mix(sky, light, 0.35), light, mix(sky, light, 0.65)
+BarFx.Add("blastastorm", label("blastastorm", "Storm (Blasta)"), preset("storm", 6, function(hi)
+    local sky = mix(hi, STORM, 0.75)
+    return mix(sky, STORM_WHITE, 0.35), STORM_WHITE, mix(sky, STORM_WHITE, 0.65)
 end))
 
 -- Poison: toxic bubbles rising and popping by the end, drops of venom dripping
 -- back through the fill, and a sickly green haze.
 local VENOM, VENOM_LIGHT = { 0.55, 1, 0.25 }, { 0.9, 1, 0.75 }
-BarFx.Add("blastapoison", label("blastapoison", "Poison (Blasta)"), preset("poison", 5.6, VENOM, 0.75, VENOM_LIGHT, function(venom, light)
-    return mix(venom, light, 0.2), light, mix(venom, light, 0.5)
+BarFx.Add("blastapoison", label("blastapoison", "Poison (Blasta)"), preset("poison", 5.6, function(hi)
+    local venom = mix(hi, VENOM, 0.75)
+    return mix(venom, VENOM_LIGHT, 0.2), VENOM_LIGHT, mix(venom, VENOM_LIGHT, 0.5)
 end))
 
 -- By class: a player's bars wear that player's class preset (yours, a target

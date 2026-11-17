@@ -1774,11 +1774,33 @@ function extras.TooltipSample(parent)
     if view ~= "compare" and view ~= "spell" and view ~= "enemy" and view ~= "mine" then view = "item" end
     local scale = 1
     local T = extras.Translate
+    -- DaylightUI outlines a text by its string width, which for a wrapped
+    -- line is the whole text on one line, far past the tooltip. Each text
+    -- gets a plain frame over just its box instead.
+    local boxes = setmetatable({}, { __mode = "k" })
+    local function boxOf(region)
+        if region:GetObjectType() ~= "FontString" then return region end
+        local box = boxes[region]
+        if not box then
+            box = CreateFrame("Frame", nil, region:GetParent())
+            box:EnableMouse(false)
+            boxes[region] = box
+        end
+        local w, h = tonumber(region:GetStringWidth()) or 0, tonumber(region:GetStringHeight()) or 0
+        local room = tonumber(region:GetWidth()) or 0
+        if room > 0 then w = math.min(w, room) end
+        box:ClearAllPoints()
+        box:SetSize(math.max(w, 12) + 6, math.max(h, 10) + 4)
+        local j = region:GetJustifyH()
+        local point = (j == "LEFT" or j == "RIGHT") and j or "CENTER"
+        box:SetPoint(point, region, point, j == "LEFT" and -3 or j == "RIGHT" and 3 or 0, 0)
+        return box
+    end
     local function parts(panel, list)
         if not panel:IsShown() then return end
         local function part(region, label, keys)
             if region and region:IsShown() then
-                list[#list + 1] = { region = region, label = T(label), keys = keys, scale = scale }
+                list[#list + 1] = { region = boxOf(region), label = T(label), keys = keys, scale = scale }
             end
         end
         part(panel.title, "Name", { "blastaTitleSize" })
@@ -1796,7 +1818,12 @@ function extras.TooltipSample(parent)
         frame = host,
         Views = function()
             local out = {}
-            for i, v in ipairs(VIEWS) do out[i] = { key = v.key, label = T(v.label), on = v.key == view } end
+            -- DaylightUI lays the chips out from the right: last first, so
+            -- they read left to right in VIEWS' order.
+            for i = #VIEWS, 1, -1 do
+                local v = VIEWS[i]
+                out[#out + 1] = { key = v.key, label = T(v.label), on = v.key == view }
+            end
             return out
         end,
         SetView = function(key) view = key end,
@@ -1829,7 +1856,7 @@ function extras.TooltipSample(parent)
             -- A little taller than DaylightUI's usual strip is fine for a
             -- tooltip; past that it shrinks, never below 85 %.
             local windowHeight = window and window.GetHeight and tonumber(window:GetHeight()) or 0
-            local fit = math.max((tonumber(room) or 0) * 1.5, math.min(560, windowHeight * 0.42), 220)
+            local fit = math.max((tonumber(room) or 0) * 1.5, math.min(620, windowHeight * 0.5), 220)
             -- The strip's Zoom then makes it smaller or larger from there.
             scale = (natural > fit and math.max(0.6, fit / natural) or 1) * zoom
             host:SetScale(scale)
