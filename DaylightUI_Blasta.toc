@@ -57,6 +57,7 @@ Extras\CraftShine.lua
 Extras\RecipeChance.lua
 Extras\AuraReminder.lua
 WorldMap.lua
+Extras\ZoneTitleExtras.lua
 Skins.lua
 BugSackSkin.lua
 DeleteCheapestSkin.lua
@@ -72,6 +73,7 @@ ActionBarPixels.lua
 ActionBarSlants.lua
 Extras\RageNeed.lua
 Extras\BarFxPresets.lua
+Extras\Report.lua
 ChannelTicks.lua
 Imported\Core.lua
 Imported\Packs\KeepOrToss.lua

@@ -676,6 +676,7 @@ function ns.RegisterSettings(pages)
 	defaults.squareSpellbookIcons = false
 	defaults.characterPanel = ns.CharacterPanelDefaults
 	defaults.mapZoneLevels = true
+	defaults.zoneTitleExtras = ns.ZoneTitleExtrasDefaults
 	defaults.dispelOverlay = false
 	defaults.dungeonFinder = false
 	defaults.blastaBags = false
@@ -710,7 +711,11 @@ function ns.RegisterSettings(pages)
 			options = pages and { pages = pages } or nil })
 		stylePluginMenu()
 		SLASH_DAYLIGHTBLASTA1 = "/blasta"
-		SlashCmdList.DAYLIGHTBLASTA = function()
+		SlashCmdList.DAYLIGHTBLASTA = function(msg)
+			if type(msg) == "string" and msg:lower():match("^%s*report") and ns.Report then
+				ns.Report.Show()
+				return
+			end
 			if DUI.OptionsPanel and DUI.OptionsPanel.ShowSection then DUI.OptionsPanel.ShowSection(sectionID) end
 		end
 	end)

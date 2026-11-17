@@ -332,7 +332,7 @@ L["Content"] = "Inhalt"
 L["Item comparison"] = "Ausrüstungsvergleich"
 L["Detailed"] = "Ausführlich"
 L["Blasta sample item"] = "Klinge der Morgendämmerung"
-L["Blasta sample equipped"] = "Ausgerüstet · Wachtklinge"
+L["Blasta sample equipped"] = "Wachtklinge"
 L["Blasta sample item type"] = "Schwert · Einhändig · Stufe 29"
 L["Blasta sample item effect"] = "Anlegen: Erhöht eure Ausdauer um 5."
 L["Blasta sample spell"] = "Machtwort: Schild"
@@ -508,7 +508,7 @@ L["Warning status color"] = "Warnfarbe"
 L["Critical status color"] = "Farbe für kritische Messwerte"
 
 L["Retract swing timer while casting"] = "Swingtimer beim Zaubern einziehen"
-L["Starts retracting the swing timer as soon as the player cast bar appears."] = "Sobald die Spieler-Zauberleiste erscheint, beginnt der Swingtimer einzufahren."
+L["Starts retracting the swing timer as soon as the player cast bar appears. Not while your cast bar sits between your frame and the target's: there the swing timers fan out under it."] = "Sobald die Spieler-Zauberleiste erscheint, beginnt der Swingtimer einzufahren. Nicht, wenn deine Zauberleiste zwischen deinem Rahmen und dem des Ziels sitzt: Dort fächern sich die Swingtimer darunter auf."
 
 L["Show tooltip icon"] = "Tooltip-Symbol anzeigen"
 L["Item icon size"] = "Größe des Gegenstandssymbols"
@@ -746,3 +746,28 @@ L["Loot feed"] = "Beutefeed"
 for key, value in pairs(L) do
     if not extras.German[key] then rawset(extras.German, key, value) end
 end
+L["Only in combat"] = "Nur im Kampf"
+L["The animation plays only while you're in a fight. Outside one the bar rests. The preview above always moves."] =
+    "Die Animation läuft nur, solange du im Kampf bist. Außerhalb bleibt die Leiste ruhig. Die Vorschau darüber bewegt sich immer."
+L["Kills to the next level"] = "Kills bis zur nächsten Stufe"
+L["Hovering the bar shows about how many more kills the level takes, from the experience of your last kills."] =
+    "Beim Überfahren der Leiste steht, wie viele Kills die Stufe noch etwa braucht, berechnet aus der Erfahrung deiner letzten Kills."
+L["Kills to level up"] = "Kills bis Stufenaufstieg"
+L["Blasta report"] = "Blasta-Bericht"
+L["Click the box and press Ctrl+C, then paste it into a GitHub issue."] =
+    "Klick in das Feld, drück Strg+C und füg es in ein GitHub-Issue ein."
+L["Zone title extras"] = "Zonentitel-Extras"
+L["Show the zone's level range"] = "Stufenbereich der Zone anzeigen"
+L["Under the zone title, the levels the zone is meant for, colored like a quest of that level: red is dangerous, yellow just right, green and grey easy."] =
+    "Unter dem Zonentitel stehen die Stufen, für die die Zone gedacht ist, gefärbt wie eine Quest dieser Stufe: Rot ist gefährlich, Gelb passend, Grün und Grau leicht."
+L["Mark newly discovered places"] = "Neu entdeckte Orte markieren"
+L["When the game counts a place as newly explored, \"Discovered\" shows over its name."] =
+    "Wenn das Spiel einen Ort als neu erkundet zählt, steht über seinem Namen „Neu entdeckt“."
+L["Show when you start resting"] = "Erholung anzeigen"
+L["Stepping into an inn or a city shows the place's name with \"Resting\" under it."] =
+    "Betrittst du ein Gasthaus oder eine Stadt, erscheint der Ortsname mit „Erholung“ darunter."
+L["Plays DaylightUI's zone title for where you are, with the extras that are on."] =
+    "Spielt den Zonentitel von DaylightUI für deinen aktuellen Ort ab, mit den eingeschalteten Extras."
+L["Discovered"] = "Neu entdeckt"
+L["Resting"] = "Erholung"
+L["Preview the zone title"] = "Zonentitel testen"

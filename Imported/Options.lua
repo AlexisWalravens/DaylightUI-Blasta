@@ -231,6 +231,7 @@ if barCard then
 end
 if ns.BarEffectsPage then toDaylight("UnitFrames.colors", pageOf(ns.BarEffectsPage())) end
 if ns.LootFeedPage then toDaylight("QoL.loot", pageOf(ns.LootFeedPage())) end
+if ns.ZoneTitleExtrasGroup then toDaylight("QoL.qol", { ns.ZoneTitleExtrasGroup() }, "Level up, zone and reputation") end
 if ns.DungeonFinderGroup then toDaylight("windows", { ns.DungeonFinderGroup }, "Group Finder") end
 if ns.SpellbookGroup then toDaylight("windows", { ns.SpellbookGroup }, "Spellbook") end
 if ns.MapLevelsGroup then toDaylight("Skins.skins", { ns.MapLevelsGroup }, "World map") end

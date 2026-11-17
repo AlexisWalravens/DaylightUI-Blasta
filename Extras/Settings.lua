@@ -352,6 +352,10 @@ end
 function extras.MoveSettings()
     local skinSwitches = {}
     local stayed = {}
+    -- Blasta's tooltip cards join DaylightUI's Tooltips page before the rows
+    -- there are sorted, so they get the badge like every other Blasta row.
+    local tooltipCards = extras.PlaceTooltipCards and extras.PlaceTooltipCards()
+    if extras.PlaceBarFxCombat then pcall(extras.PlaceBarFxCombat) end
     for _, name in ipairs(modules) do
         local mod = DUI:GetModule(name)
         local valid = mod and staysInDaylight(mod)
@@ -400,6 +404,13 @@ function extras.MoveSettings()
         if rageInDaylight then groups[2] = { label = extras.RageNeedGroup.label, items = {} } end
         extras.LocalizePages({ { groups = groups } })
         if rageInDaylight then extras.RageNeedGroup.label = groups[2].label end
+    end
+    if tooltipCards and extras.LocalizePages then
+        -- Only the cards' own title and text: their rows went through above.
+        local shells = {}
+        for i, card in ipairs(tooltipCards) do shells[i] = { label = card.label, desc = card.desc, items = {} } end
+        extras.LocalizePages({ { groups = shells } })
+        for i, card in ipairs(tooltipCards) do card.label, card.desc = shells[i].label, shells[i].desc end
     end
     for _, item in ipairs(stayed) do item.blastaBadge = true end
     if rageInDaylight then

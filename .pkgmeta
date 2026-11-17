@@ -1,0 +1,7 @@
+package-as: DaylightUI_Blasta
+
+ignore:
+  - README.md
+  - .github
+  - .gitattributes
+  - .gitignore

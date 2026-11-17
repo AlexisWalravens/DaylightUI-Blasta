@@ -11,7 +11,7 @@ local defaults = {
     border = -1, format = "native", rested = true, align = "CENTER",
     left = "straight", right = "straight",
     x = 0, y = 0, ownColor = false, color = { 1, 1, 1 },
-    textZones = false, gainMotion = true,
+    textZones = false, gainMotion = true, killEstimate = true,
     zones = {
         LEFT = { format = "off", x = 0, y = 0 },
         CENTER = { format = "existing", x = 0, y = 0 },

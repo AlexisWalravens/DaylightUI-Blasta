@@ -21,7 +21,7 @@ if not nativeHide then
     defaults.hideDuringCast = true
     extras.AddSetting(mod, anchor, {
         type = "toggle", key = "swing.hideDuringCast", label = "Retract swing timer while casting",
-        desc = "Starts retracting the swing timer as soon as the player cast bar appears.",
+        desc = "Starts retracting the swing timer as soon as the player cast bar appears. Not while your cast bar sits between your frame and the target's: there the swing timers fan out under it.",
         disabled = function(get) return get("swing.enabled") ~= true end,
     })
     anchor = "swing.hideDuringCast"
@@ -73,7 +73,9 @@ end
 
 local function retractDuringCast(updateShown, holder)
     local cast = holder and holder.castbar
-    if not (cast and holder.enabled and holder.cfg and holder.cfg.hideDuringCast ~= false
+    -- With the cast bar between the frames, DaylightUI fans the swing timers
+    -- out under it while casting: retracting them would undo that.
+    if not (cast and not holder.fan and holder.enabled and holder.cfg and holder.cfg.hideDuringCast ~= false
         and not holder.test and cast.enabled
         and (cast:IsShown() or (settling[holder] and settling[holder].cast == cast))) then
         return updateShown(holder)

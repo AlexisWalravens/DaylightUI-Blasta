@@ -124,6 +124,22 @@ local function getZoneLevels(info)
     if range then return range[1], range[2], "C_LFGList" end
 end
 
+-- The level range of the zone you're in (its Zone map, above any city or
+-- cave map), for the zone title: low, high or nil.
+function extras.CurrentZoneLevels()
+    if not (C_Map and C_Map.GetBestMapForUnit and C_Map.GetMapInfo) then return end
+    local id = C_Map.GetBestMapForUnit("player")
+    local zoneType = Enum and Enum.UIMapType and Enum.UIMapType.Zone
+    for _ = 1, 6 do
+        local info = type(id) == "number" and C_Map.GetMapInfo(id)
+        if not info then return end
+        local low, high = getZoneLevels(info)
+        if low then return low, high end
+        if info.mapType == zoneType then return end
+        id = info.parentMapID
+    end
+end
+
 local function zoneAtCursor(map, nativeText)
     local id = map:GetMapID()
     if not id then return end

@@ -1,11 +1,48 @@
 # Daylight Blasta 1.7.1 — 2026-11-17
 
+Works with DaylightUI 1.9.3.
+
 ## Experience bar
 
 - **Gain animation** — New experience shows at once as a light piece, and the fill runs after it with a soft light on its tip: quick for a kill, longer for a big quest turn-in. Kills in a row carry on without restarting.
 - **Level up** — The fill runs to the end, a band crosses the full bar, the bar drains back to the left, and it fills again. The rested part grows back after it.
 - **Reputation waits** — When a quest gives experience and reputation together, the reputation bar shows after the experience animation instead of covering it.
 - **Settings** — Switch and test button under **Info panel → Gain animation**. DaylightUI's rising "+N" stays. Needs Motion effects.
+- **Kills to the next level** — Hovering the bar shows about how many more kills the level takes, worked out from the experience of your last ten kills. Switch under **Info panel → Gain animation**.
+
+## Bar animations
+
+- **Only in combat** — A new switch under each bar's **Animation strength** lets the animation rest outside a fight and start when one begins. The preview on the settings page keeps moving.
+
+## Tooltips
+
+- **Live preview** — DaylightUI's Tooltips page now shows a Blasta tooltip at the top that changes as you move a slider. Chips pick an item, a comparison, a spell or a unit. The sample item has a line of every kind: name, small print, base stats, bonus stats, enchantment, effect, prices and source.
+- **Click a line, find its setting** — Hovering a line in the preview names its text size, and a click jumps to that slider.
+- **Three clear cards** — The Blasta rows no longer sit in the middle of DaylightUI's Look card. They have their own cards: Blasta tooltips, Tooltip text sizes, and Tooltip icon and header. The text sizes go from top to bottom in the order the lines appear, each named after the lines it changes, with a button to reset them.
+- **No doubled rows** — Tooltip position, cursor offsets, scale and background no longer show twice.
+- **Zoom** — The preview has DaylightUI's zoom slider, from 0.6x to 1.6x, to look closely at small text or fit a tall tooltip.
+- **Your item** — A new chip shows something you actually wear (your weapon first) through the real Blasta tooltip, so your own gear shows how your settings look.
+
+## Bug reports
+
+- **/blasta report** — Opens a window with Blasta's and DaylightUI's versions, the game version and language, which Blasta parts are on, your other addons and this session's latest Blasta errors, ready to copy into a GitHub issue.
+
+## Zone title
+
+- **Zone title extras** — Three new switches for DaylightUI's zone title, under **Quality of Life → Zone title extras**, all off at first:
+  - **Level range** — The levels the zone is meant for show under the title, colored like a quest of that level.
+  - **Newly discovered** — When the game counts a place as newly explored, "Discovered" shows over its name.
+  - **Resting** — Stepping into an inn or a city shows the place's name with "Resting" under it.
+- A preview button plays the title for where you are, with the extras that are on.
+
+## Swing timer
+
+- **Fans out with the cast bar** — With DaylightUI 1.9.3's cast bar between your frame and the target's, "Retract swing timer while casting" no longer pulls the swing timers in, so they fan out under the cast bar as DaylightUI draws them.
+
+## Fixes
+
+- **"Opening - No Text" on the cast bar** — Picking up quest items and similar interactions now read "Öffnen" on German clients, instead of the game's untranslated spell name.
+- **Bar moments on bars angled at both ends** — No more Lua error from the light bands for damage, heals and spent power on a bar slanted at both ends, like a power bar on its own with both ends angled. A band now keeps the frame's clip only at the empty end and lets its angled lead edge cut the full end, staying within the game's three masks per texture. Thanks to [AlexisWalravens](https://github.com/AlexisWalravens) (pull request #1).
 
 # Daylight Blasta 1.7 — 2026-11-17
 

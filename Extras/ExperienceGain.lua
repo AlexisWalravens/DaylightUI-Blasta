@@ -396,5 +396,127 @@ function extras.ExperienceGainGroup()
         { type = "button", label = "Test gain animation", text = "Test gain animation",
             func = function() extras.ExperienceGainTest() end,
             disabled = function(get) return get(ROOT .. ".gainMotion") == false end },
+        { type = "toggle", key = ROOT .. ".killEstimate", label = "Kills to the next level",
+            desc = "Hovering the bar shows about how many more kills the level takes, from the experience of your last kills." },
     } }
 end
+
+-- Kills to the next level: the experience of the last kills, read from the
+-- game's own "X dies, you gain N experience" lines, gives an average; the
+-- bar's hover adds how many more of those the level takes.
+local KEEP = 10   -- kills averaged
+local kills = {}
+local patterns = {}
+
+-- A global format string ("%s dies, you gain %d experience.", with or
+-- without numbered arguments) as a Lua pattern, and which capture holds the
+-- experience (its first number).
+local function compile(fmt)
+    if type(fmt) ~= "string" or not fmt:find("%%") then return end
+    local out, args, i = {}, {}, 1
+    while i <= #fmt do
+        local a, b, pos, conv = fmt:find("^%%(%d*)%$?([sd])", i)
+        if a then
+            args[#args + 1] = { conv = conv, pos = tonumber(pos) or (#args + 1) }
+            out[#out + 1] = conv == "d" and "([%d%.,]+)" or "(.-)"
+            i = b + 1
+        elseif fmt:sub(i, i + 1) == "%%" then
+            out[#out + 1] = "%%"
+            i = i + 2
+        else
+            local c = fmt:sub(i, i)
+            out[#out + 1] = c:find("^[%^%$%(%)%%%.%[%]%*%+%-%?]") and "%" .. c or c
+            i = i + 1
+        end
+    end
+    local slot, first
+    for k, arg in ipairs(args) do
+        if arg.conv == "d" and (not first or arg.pos < first) then slot, first = k, arg.pos end
+    end
+    if slot then return "^" .. table.concat(out), slot end
+end
+
+local function readPatterns()
+    if #patterns > 0 then return end
+    for name, fmt in pairs(_G) do
+        if type(name) == "string" and name:find("^COMBATLOG_XPGAIN_") and not name:find("UNNAMED")
+            and not name:find("QUEST") and type(fmt) == "string" then
+            local pattern, slot = compile(fmt)
+            if pattern then patterns[#patterns + 1] = { pattern = pattern, slot = slot } end
+        end
+    end
+    -- The longer ones (rested, group bonus) first.
+    table.sort(patterns, function(a, b) return #a.pattern > #b.pattern end)
+end
+
+local function killed(_, text)
+    if type(text) ~= "string" or secret(text) then return end
+    readPatterns()
+    for _, p in ipairs(patterns) do
+        local found = { text:match(p.pattern) }
+        if #found > 0 then
+            local amount = tonumber((tostring(found[p.slot] or ""):gsub("[^%d]", "")))
+            if amount and amount > 0 then
+                table.insert(kills, amount)
+                if #kills > KEEP then table.remove(kills, 1) end
+            end
+            return
+        end
+    end
+end
+DUI.RegisterEvent("CHAT_MSG_COMBAT_XP_GAIN", killed)
+
+local function estimateOn()
+    local s = DUI:Get(ADDON, ROOT)
+    return not (s and s.killEstimate == false)
+end
+
+-- How many more kills the level takes, or nil while there's too little to go on.
+function extras.ExperienceKillsLeft()
+    if #kills < 3 or not estimateOn() then return end
+    local d = XP.Read and XP.Read()
+    if not (d and d.max and d.value) or secret(d.max) or secret(d.value) then return end
+    local sum = 0
+    for _, v in ipairs(kills) do sum = sum + v end
+    local average = sum / #kills
+    local left = d.max - d.value
+    if average <= 0 or left <= 0 then return end
+    return math.ceil(left / average)
+end
+
+-- The line joins the bar's own hover, after its experience rows and before
+-- the reputation part when that shows too.
+local hovering, added
+local Tips = DUI.Tips
+local function addKills()
+    if not hovering or added then return end
+    added = true
+    local n = extras.ExperienceKillsLeft()
+    if n then Tips.Line(extras.Translate("Kills to level up"), "~" .. BreakUpLargeNumbers(n)) end
+end
+if Tips and Tips.Flush and Tips.Gap then
+    local flush, gap = Tips.Flush, Tips.Gap
+    Tips.Gap = function(...)
+        addKills()
+        return gap(...)
+    end
+    Tips.Flush = function(...)
+        addKills()
+        return flush(...)
+    end
+end
+local hooked
+local function hookHover()
+    if hooked or not (XP.frame and XP.frame.GetScript) then return end
+    local enter = XP.frame:GetScript("OnEnter")
+    if not enter then return end
+    hooked = true
+    XP.frame:SetScript("OnEnter", function(...)
+        hovering, added = true, false
+        local ok, err = pcall(enter, ...)
+        hovering = false
+        if not ok then error(err, 0) end
+    end)
+end
+hookHover()
+hooksecurefunc(XP, "Update", hookHover)

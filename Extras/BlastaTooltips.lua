@@ -28,6 +28,33 @@ extras.German["Tooltip stat size"] = "Größe der Grundwerte"
 extras.German["Tooltip bonus stat size"] = "Größe der Zusatzwerte (Angriffskraft, Zaubermacht …)"
 extras.German["Tooltip enchantment size"] = "Größe der Verzauberungen"
 extras.German["Tooltip effect size"] = "Größe sonstiger Effekte"
+extras.German["Blasta tooltips"] = "Blasta-Tooltips"
+extras.German["Tooltip text sizes"] = "Schriftgrößen im Tooltip"
+extras.German["From top to bottom, in the order the lines appear in a tooltip. Click a line in the preview to jump to its size."] = "Von oben nach unten, in der Reihenfolge der Zeilen im Tooltip. Klick in der Vorschau auf eine Zeile, um zu ihrer Größe zu springen."
+extras.German["Name"] = "Name"
+extras.German["The item, spell or unit name at the top."] = "Der Name ganz oben: Gegenstand, Zauber oder Einheit."
+extras.German["Small print"] = "Kleingedrucktes"
+extras.German["Item type, binding, item level, the weapon's damage and speed, and the item ID."] = "Gegenstandstyp, Bindung, Gegenstandsstufe, Waffenschaden und Tempo sowie die Gegenstands-ID."
+extras.German["Base stats"] = "Grundwerte"
+extras.German["Stamina, Intellect, Armor and the other plain stats."] = "Ausdauer, Intelligenz, Rüstung und die anderen einfachen Werte."
+extras.German["Bonus stats"] = "Bonuswerte"
+extras.German["Attack power, spell power, hit and crit from equip effects."] = "Angriffskraft, Zaubermacht, Treffer- und kritische Trefferchance aus Anlegen-Effekten."
+extras.German["Enchantments"] = "Verzauberungen"
+extras.German["The enchantment on the item."] = "Die Verzauberung auf dem Gegenstand."
+extras.German["Effects and descriptions"] = "Effekte und Beschreibungen"
+extras.German["Equip and use effects, and the text of spells and auras."] = "Anlegen- und Benutzen-Effekte sowie die Texte von Zaubern und Auren."
+extras.German["Everything else"] = "Übriger Text"
+extras.German["Prices, sources, disenchant results and other addons' lines. Damage per second is a little larger."] = "Preise, Quellen, Entzauberungsergebnisse und Zeilen anderer Addons. Schaden pro Sekunde ist etwas größer."
+extras.German["Reset text sizes"] = "Schriftgrößen zurücksetzen"
+extras.German["Reset"] = "Zurücksetzen"
+extras.German["Puts every text size back to Blasta's default."] = "Setzt alle Schriftgrößen auf Blastas Standard zurück."
+extras.German["Tooltip icon and header"] = "Symbol und Kopfzeile"
+extras.German["Tooltip icon"] = "Symbol"
+extras.German["Item"] = "Gegenstand"
+extras.German["Item comparison"] = "Vergleich"
+extras.German["Your item"] = "Dein Gegenstand"
+extras.German["Spell"] = "Zauber"
+extras.German["Unit"] = "Einheit"
 
 defaults.blastaGradient = "daylight"
 defaults.blastaGradientStrength = 20
@@ -35,62 +62,85 @@ defaults.blastaGradientHeight = 70
 defaults.blastaGradientColor = { 0.32, 0.58, 0.8 }
 
 local function selected(get) return get("blastaStyle") ~= "blasta" end
-local function add(anchor, row)
-    extras.AddSetting(mod, anchor, row)
-    return row.key
+local function slider(key, label, min, max, desc)
+    return { type = "slider", key = key, label = label, min = min, max = max, step = 1, desc = desc, disabled = selected }
 end
-local anchor = add(extras.FindSetting(mod, "borderPx") and "borderPx" or "bgAlpha",
-    { type = "dropdown", key = "blastaStyle", label = "Tooltip style",
-    values = { daylight = "Daylight", blasta = "Blasta Tooltips" }, order = { "daylight", "blasta" },
-    desc = "Uses Daylight placement. Disable PrettyTooltip to use the Blasta layout." })
-anchor = add(anchor, { type = "dropdown", key = "blastaDensity", label = "Tooltip density",
-    values = { compact = "Compact", standard = "Standard", detailed = "Detailed" },
-    order = { "compact", "standard", "detailed" }, disabled = selected })
-anchor = add(anchor, { type = "toggle", key = "blastaDetails", label = "Show tooltip details",
-    desc = "Show prices, IDs and supplementary details.", disabled = selected })
-anchor = add(anchor, { type = "toggle", key = "blastaDisenchant", label = "Show disenchant results",
-    desc = "Show disenchant information added by addons such as DisenchantBuddy or Auctionator.",
-    disabled = function(get) return selected(get) or get("blastaDetails") == false end })
-anchor = add(anchor, { type = "toggle", key = "blastaCompare", label = "Use Blasta for item comparisons", disabled = selected })
-anchor = add(anchor, { type = "dropdown", key = "blastaOriginal", label = "Original tooltip modifier",
-    values = { alt = "Alt", shift = "Shift", ctrl = "Ctrl", off = "Off" },
-    order = { "alt", "shift", "ctrl", "off" }, disabled = selected })
-anchor = add(anchor, { type = "toggle", key = "blastaIcon", label = "Show tooltip icon", disabled = selected })
-for _, row in ipairs({
-    { "blastaItemIconSize", "Item icon size", 16, 56 },
-    { "blastaSpellIconSize", "Spell and aura icon size", 16, 56 },
-    { "blastaTitleSize", "Tooltip title size", 9, 32 },
-    { "blastaBodySize", "Tooltip description size", 8, 24 },
-    { "blastaMetaSize", "Tooltip secondary text size", 8, 24 },
-    { "blastaStatSize", "Tooltip stat size", 8, 24 },
-    { "blastaBonusSize", "Tooltip bonus stat size", 8, 24 },
-    { "blastaEnchantSize", "Tooltip enchantment size", 8, 24 },
-    { "blastaEffectSize", "Tooltip effect size", 8, 24 },
-    { "blastaGradientStrength", "Header gradient strength", 0, 100 },
-    { "blastaGradientHeight", "Header gradient height", 16, 140 },
-}) do
-    anchor = add(anchor, { type = "slider", key = row[1], label = row[2], min = row[3], max = row[4],
-        step = 1, disabled = selected })
-end
-anchor = add(anchor, { type = "dropdown", key = "blastaGradient", label = "Header gradient",
-    values = { daylight = "Daylight", sunrise = "Blasta sunrise", custom = "Custom", off = "Off" },
-    order = { "daylight", "sunrise", "custom", "off" }, disabled = selected })
-anchor = add(anchor, { type = "color", key = "blastaGradientColor", label = "Header gradient color",
-    disabled = function(get) return selected(get) or get("blastaGradient") ~= "custom" end })
- 
-add(anchor, { type = "dropdown", key = "blastaPreview", label = "Tooltip preview type",
-    values = { item = "Item", compare = "Item comparison", spell = "Spell", aura = "Aura",
-        quest = "Quest", enemy = "Enemy", player = "Player" },
-    order = { "item", "compare", "spell", "aura", "quest", "enemy", "player" }, disabled = selected })
+local textSizeKeys = { "blastaTitleSize", "blastaMetaSize", "blastaStatSize", "blastaBonusSize",
+    "blastaEnchantSize", "blastaEffectSize", "blastaBodySize" }
 
--- Use the original placement and appearance values in both layouts.
-for _, key in ipairs({ "anchor", "cursorX", "cursorY", "scale", "bgAlpha" }) do
-    local original, items = extras.FindSetting(mod, key)
-    if original then
-        local row = {}
-        for field, value in pairs(original) do row[field] = value end
-        items[#items + 1] = row
+-- Three cards of their own on DaylightUI's Tooltips page (placed at login,
+-- extras.PlaceTooltipCards): the layout, the text sizes in the order they
+-- appear in a tooltip, and the icon and header. Each size names the lines it
+-- changes, and the live preview above shows them; a click on a line there
+-- jumps to its slider.
+extras.TooltipCards = {
+    { label = "Blasta tooltips", items = {
+        { type = "dropdown", key = "blastaStyle", label = "Tooltip style",
+            values = { daylight = "Daylight", blasta = "Blasta Tooltips" }, order = { "daylight", "blasta" },
+            desc = "Uses Daylight placement. Disable PrettyTooltip to use the Blasta layout." },
+        { type = "dropdown", key = "blastaDensity", label = "Tooltip density",
+            values = { compact = "Compact", standard = "Standard", detailed = "Detailed" },
+            order = { "compact", "standard", "detailed" }, disabled = selected },
+        { type = "toggle", key = "blastaDetails", label = "Show tooltip details",
+            desc = "Show prices, IDs and supplementary details.", disabled = selected },
+        { type = "toggle", key = "blastaDisenchant", label = "Show disenchant results",
+            desc = "Show disenchant information added by addons such as DisenchantBuddy or Auctionator.",
+            disabled = function(get) return selected(get) or get("blastaDetails") == false end },
+        { type = "toggle", key = "blastaCompare", label = "Use Blasta for item comparisons", disabled = selected },
+        { type = "dropdown", key = "blastaOriginal", label = "Original tooltip modifier",
+            values = { alt = "Alt", shift = "Shift", ctrl = "Ctrl", off = "Off" },
+            order = { "alt", "shift", "ctrl", "off" }, disabled = selected },
+    } },
+    { label = "Tooltip text sizes",
+      desc = "From top to bottom, in the order the lines appear in a tooltip. Click a line in the preview to jump to its size.",
+      items = {
+        slider("blastaTitleSize", "Name", 9, 32, "The item, spell or unit name at the top."),
+        slider("blastaMetaSize", "Small print", 8, 24,
+            "Item type, binding, item level, the weapon's damage and speed, and the item ID."),
+        slider("blastaStatSize", "Base stats", 8, 24, "Stamina, Intellect, Armor and the other plain stats."),
+        slider("blastaBonusSize", "Bonus stats", 8, 24, "Attack power, spell power, hit and crit from equip effects."),
+        slider("blastaEnchantSize", "Enchantments", 8, 24, "The enchantment on the item."),
+        slider("blastaEffectSize", "Effects and descriptions", 8, 24,
+            "Equip and use effects, and the text of spells and auras."),
+        slider("blastaBodySize", "Everything else", 8, 24,
+            "Prices, sources, disenchant results and other addons' lines. Damage per second is a little larger."),
+        { type = "button", label = "Reset text sizes", text = "Reset", disabled = selected,
+            desc = "Puts every text size back to Blasta's default.",
+            func = function()
+                for _, key in ipairs(textSizeKeys) do DUI:Set("Tooltip", key, defaults[key]) end
+            end },
+    } },
+    { label = "Tooltip icon and header", items = {
+        { type = "toggle", key = "blastaIcon", label = "Show tooltip icon", disabled = selected },
+        slider("blastaItemIconSize", "Item icon size", 16, 56),
+        slider("blastaSpellIconSize", "Spell and aura icon size", 16, 56),
+        { type = "dropdown", key = "blastaGradient", label = "Header gradient",
+            values = { daylight = "Daylight", sunrise = "Blasta sunrise", custom = "Custom", off = "Off" },
+            order = { "daylight", "sunrise", "custom", "off" }, disabled = selected },
+        { type = "color", key = "blastaGradientColor", label = "Header gradient color",
+            disabled = function(get) return selected(get) or get("blastaGradient") ~= "custom" end },
+        slider("blastaGradientStrength", "Header gradient strength", 0, 100),
+        slider("blastaGradientHeight", "Header gradient height", 16, 140),
+    } },
+}
+
+-- Puts the cards after DaylightUI's "Look" card and the live preview on top.
+function extras.PlaceTooltipCards()
+    local page
+    for _, candidate in ipairs(mod.options and mod.options.pages or {}) do
+        if candidate.id == "tooltip" then page = candidate end
     end
+    if not (page and page.groups) or extras.TooltipCardsPlaced then return end
+    extras.TooltipCardsPlaced = true
+    local at = #page.groups + 1
+    for i, group in ipairs(page.groups) do
+        if group.label == "Look" then at = i + 1 end
+    end
+    for i, group in ipairs(extras.TooltipCards) do table.insert(page.groups, at + i - 1, group) end
+    if page.sample == nil and extras.TooltipSample then
+        page.sample = function(parent) return extras.TooltipSample(parent) end
+    end
+    return extras.TooltipCards
 end
 
 local function config() return mod.db or defaults end
@@ -287,9 +337,16 @@ local function render(panel, model, maxWidth)
     Style.SetTextSize(measure, titleSize)
     local caption = model.rank or (model.equipped and L["Equipped"] or nil)
     local rankWidth = caption and textWidth(measure, caption) + 8 or 0
-    local titleWidth = textWidth(measure, model.title)
+    -- A scaled preview draws its letters a touch wider than measured; its
+    -- panels carry some slack so no column wraps early.
+    local slack = panel.slack or 0
+    local function wide(text)
+        local w = textWidth(measure, text)
+        return w > 0 and w + slack or 0
+    end
+    local titleWidth = wide(model.title)
     Style.SetTextSize(measure, metaSize)
-    local subtitleWidth, bindingWidth = textWidth(measure, subtitle), textWidth(measure, binding)
+    local subtitleWidth, bindingWidth = wide(subtitle), wide(binding)
     local iconColumn = math.max(iconSize, textWidth(measure, levelUnderIcon))
     local lead = iconColumn > 0 and iconColumn + gap + 3 or 0
     local content = lead + math.max(titleWidth + rankWidth, subtitleWidth, bindingWidth)
@@ -300,8 +357,8 @@ local function render(panel, model, maxWidth)
             measured = measured + 1
             local row = fontRow(panel, measured)
             Style.SetTextSize(measure, sizeOf(line))
-            row.leftWidth = textWidth(measure, line.text) + (line.bar and 76 or 0)
-            row.rightWidth = textWidth(measure, line.right)
+            row.leftWidth = wide(line.text) + (line.bar and 76 or 0)
+            row.rightWidth = wide(line.right)
             Style.SetTextSize(measure, textSize)
             row.indent = line.icon and (math.max(12, textSize) + 5) or 0
             local rowWidth = row.leftWidth + row.indent + (line.right and row.rightWidth + 12 or 0)
@@ -387,6 +444,9 @@ local function render(panel, model, maxWidth)
             section = line.section
             used = used + 1
             local row = fontRow(panel, used)
+            -- Kept for the options preview, which maps each line to its size.
+            panel.shownLines = panel.shownLines or {}
+            panel.shownLines[used] = line
             local left, right = row.left, row.right
             Style.SetTextSize(left, sizeOf(line))
             Style.SetTextSize(right, sizeOf(line))
@@ -461,6 +521,7 @@ local function render(panel, model, maxWidth)
             y = y + math.max(left:GetStringHeight(), line.right and right:GetStringHeight() or 0, 12) + gap
         end
     end
+    if panel.shownLines then for i = #panel.shownLines, used + 1, -1 do panel.shownLines[i] = nil end end
     for i = used + 1, #panel.rows do
         panel.rows[i].left:Hide()
         panel.rows[i].right:Hide()
@@ -1535,17 +1596,6 @@ hooksecurefunc(Tip, "OnUpdate", function(tip)
     syncComparisonPair(tip)
 end)
 
-extras.TooltipGroups = {
-    borderPx = "Appearance", blastaStyle = "Appearance", blastaDensity = "Appearance",
-    blastaDetails = "Content", blastaDisenchant = "Content", blastaCompare = "Content", blastaOriginal = "Placement", blastaPreview = "Preview",
-    anchor = "Placement", cursorX = "Placement", cursorY = "Placement",
-    scale = "Appearance", bgAlpha = "Appearance",
-    blastaIcon = "Appearance", blastaItemIconSize = "Appearance", blastaSpellIconSize = "Appearance",
-    blastaTitleSize = "Text", blastaBodySize = "Text", blastaMetaSize = "Text", blastaStatSize = "Text", blastaBonusSize = "Text", blastaEnchantSize = "Text", blastaEffectSize = "Text",
-    blastaGradient = "Header gradient", blastaGradientStrength = "Header gradient",
-    blastaGradientHeight = "Header gradient", blastaGradientColor = "Header gradient",
-}
-
 DUI.On("Login", function()
     local processor = TooltipDataProcessor
     if processor and processor.AllTypes then processor.AddTooltipPostCall(processor.AllTypes, onData) end
@@ -1582,73 +1632,231 @@ DUI.On("Login", function()
     DUI.On("StyleChanged", function() revision = revision + 1; repaint() end)
 end)
 
+local GREEN, GOLD, GREY = { 0.12, 1, 0.12 }, { 1, 0.82, 0.25 }, { 0.62, 0.64, 0.68 }
 local function sample(kind, second)
+    local german = extras.Language == "deDE"
+    local function t(de, en) return german and de or en end
     if kind == "spell" then
-        local german = extras.Language == "deDE"
-        return { title = sampleText("Blasta sample spell"), rank = german and "Rang 3" or "Rank 3", icon = 135940, color = { 1, 0.72, 0.36 },
+        return { title = sampleText("Blasta sample spell"), rank = t("Rang 3", "Rank 3"), icon = 135940, color = { 1, 0.72, 0.36 },
             stats = {
                 { value = "175 " .. sampleText("Mana"), label = sampleText("Spell cost") },
-                { value = german and "Spontan" or "Instant", label = sampleText("Cast time") },
-                { value = german and "4 Sek." or "4 sec", label = sampleText("Cooldown") },
-                { value = german and "40 m" or "40 yd", label = sampleText("Range") },
+                { value = t("Spontan", "Instant"), label = sampleText("Cast time") },
+                { value = t("4 Sek.", "4 sec"), label = sampleText("Cooldown") },
+                { value = t("40 m", "40 yd"), label = sampleText("Range") },
             },
             lines = { line(sampleText("Blasta sample spell description"), "effects") } }
-    elseif kind == "quest" then
-        return { title = sampleText("Blasta sample quest"), subtitle = sampleText("Quest"), icon = 134328, color = { 0.94, 0.76, 0.42 },
-            lines = { line(sampleText("Blasta sample objective"), "values", nil, "1 / 10") } }
-    elseif kind == "enemy" or kind == "player" then
-        local player = kind == "player"
-        return { title = sampleText(player and "Blasta sample player" or "Blasta sample enemy"),
-            subtitle = sampleText(player and "Blasta sample player details" or "Blasta sample enemy details"),
-            color = player and { 0.92, 0.90, 0.85 } or { 0.93, 0.45, 0.33 }, health = 1,
-            lines = { line(sampleText("Health"), "values", nil, player and "852 / 852" or "100%") } }
-    elseif kind == "aura" then
-        return { title = sampleText("Blasta sample aura"), subtitle = sampleText("Buff"), icon = 135987, color = { 0.65, 0.82, 1 },
-            lines = { line(sampleText("Blasta sample aura duration"), "values"), line(sampleText("Blasta sample aura description"), "effects") } }
+    elseif kind == "enemy" then
+        return { title = sampleText("Blasta sample enemy"), subtitle = sampleText("Blasta sample enemy details"),
+            color = { 0.93, 0.45, 0.33 }, health = 1,
+            lines = { line(sampleText("Health"), "values", nil, "100%"),
+                line(t("Zielt auf: Baja Blasta", "Targeting: Baja Blasta"), "footer") } }
     end
-    return { kind = "Item", equipped = second == true, title = sampleText(second and "Blasta sample equipped" or "Blasta sample item"),
-        subtitle = sampleText("Blasta sample item type"), binding = sampleText("Binds when picked up"), level = second and 23 or 29,
-        icon = 135350, color = { 0.58, 0.78, 1 },
-        lines = { line((second and "17.7 " or "29.0 ") .. sampleText("Damage per second"), "dps"),
-            line(sampleText("Damage"), "values", nil, second and "24–42" or "32–48"),
-            line(sampleText("Stamina"), "values", { 0.66, 0.87, 0.75 }, second and "+3" or "+5"),
-            kind == "compare" and second and line(sampleText("Stat changes"), "comparison")
-                or line(sampleText("Blasta sample item effect"), "effects"),
-            kind == "compare" and second and line("+2 " .. sampleText("Stamina"), "comparison", { 0.48, 0.91, 0.58 })
-                or line(sampleText("Sell price"), "price", nil, DUI.MoneyString(12500)),
-            line(sampleText("Disenchant results"), "disenchant"), line(sampleText("Blasta sample dust"), "disenchant", nil, "75% · 4–6") } }
+    -- An item with one line of every kind, so each text size shows somewhere.
+    local item = { kind = "Item", equipped = second == true, icon = 135350, color = { 0.58, 0.78, 1 },
+        title = sampleText(second and "Blasta sample equipped" or "Blasta sample item"),
+        subtitle = sampleText("Blasta sample item type"), binding = sampleText("Binds when picked up"),
+        level = second and 23 or 29, lines = {} }
+    local lines = item.lines
+    local function add(text, section, color, right, fields)
+        local row = line(text, section, color, right)
+        for k, v in pairs(fields or {}) do row[k] = v end
+        lines[#lines + 1] = row
+    end
+    add(second and t("17,7 Schaden pro Sekunde", "17.7 damage per second")
+        or t("29,0 Schaden pro Sekunde", "29.0 damage per second"), "dps")
+    add(second and t("24 – 42 Schaden  ·  Tempo 1,90", "24 – 42 Damage  ·  Speed 1.90")
+        or t("32 – 48 Schaden  ·  Tempo 2,40", "32 – 48 Damage  ·  Speed 2.40"), "dps", { 0.70, 0.72, 0.76 }, nil, { small = true })
+    add(t("+5 Ausdauer", "+5 Stamina"), "values")
+    add(t("+4 Intelligenz", "+4 Intellect"), "values")
+    add(t("+12 Zaubermacht", "+12 Spell Power"), "effects", GREEN, nil, { sizeKind = "bonus" })
+    add(t("Verzaubert: +3 Beweglichkeit", "Enchanted: +3 Agility"), "effects", GREEN, nil, { sizeKind = "enchant" })
+    add(t("Benutzen: Stellt 120 Mana wieder her.", "Use: Restores 120 mana."), "effects", GREEN)
+    add(t("Benötigt für", "Needed for"), "footer", GOLD, t("2 Quests", "2 quests"))
+    if kind == "compare" and second then
+        add(sampleText("Stat changes"), "comparison")
+        add(t("+2 Ausdauer", "+2 Stamina"), "comparison", { 0.48, 0.91, 0.58 }, t("−4 Intelligenz", "−4 Intellect"),
+            { columns = true, rightColor = { 1, 0.45, 0.4 } })
+    end
+    add(sampleText("Disenchant results"), "disenchant")
+    add(sampleText("Blasta sample dust"), "disenchant", nil, "75% · 4–6")
+    add(sampleText("Sell price"), "price", nil, DUI.MoneyString(12500))
+    add(t("Quelle", "Source"), "origin", GOLD, t("Die Todesminen", "The Deadmines"))
+    add(t("Gegenstands-ID 2176", "Item ID 2176"), "origin", GREY, nil, { small = true })
+    return item
 end
 
+-- Which text size a shown line takes, the same way render's sizeOf picks it.
+local function sizeKeyOf(line)
+    if line.small then return "blastaMetaSize", "Small print" end
+    if line.sizeKind == "bonus" then return "blastaBonusSize", "Bonus stats" end
+    if line.sizeKind == "enchant" then return "blastaEnchantSize", "Enchantments" end
+    if line.section == "values" then return "blastaStatSize", "Base stats" end
+    if line.section == "effects" then return "blastaEffectSize", "Effects and descriptions" end
+    return "blastaBodySize", "Everything else"
+end
+
+local GAP, CHIPS, CHIP_ROW = 12, 470, 30   -- between two tooltips; room the view chips take
+local VIEWS = { { key = "item", label = "Item" }, { key = "mine", label = "Your item" },
+    { key = "compare", label = "Item comparison" }, { key = "spell", label = "Spell" }, { key = "enemy", label = "Unit" } }
+local ZOOM_MIN, ZOOM_MAX, ZOOM_STEP = 0.6, 1.6, 0.1
+local zoom = 1   -- the strip's Zoom, kept for the session
+
+-- "Your item": something you wear, read through a hidden tooltip of Blasta's
+-- own the same way a real tooltip is, so the preview shows your real gear.
+-- Weapon first, then chest, head, off hand and shoulders.
+local MY_SLOTS = { 16, 5, 1, 17, 3 }
+local scanTip
+local function myItem()
+    if not (CreateFrame and GetInventoryItemLink) then return end
+    scanTip = scanTip or CreateFrame("GameTooltip", "BlastaPreviewScanTooltip", UIParent, "GameTooltipTemplate")
+    for _, slot in ipairs(MY_SLOTS) do
+        if GetInventoryItemLink("player", slot) then
+            scanTip:SetOwner(UIParent, "ANCHOR_NONE")
+            scanTip:SetInventoryItem("player", slot)
+            local data = scanTip.GetPrimaryTooltipData and scanTip:GetPrimaryTooltipData()
+            if type(data) ~= "table" and C_TooltipInfo and C_TooltipInfo.GetInventoryItem then
+                data = C_TooltipInfo.GetInventoryItem("player", slot)
+            end
+            local ok, model = false, nil
+            if type(data) == "table" then ok, model = pcall(modelFor, scanTip, data) end
+            scanTip:Hide()
+            if ok and model then return model end
+        end
+    end
+end
+
+-- The live preview on DaylightUI's Tooltips page. It redraws with every
+-- change, even while a slider is dragged. Each line is a hotspot: hover names
+-- its text size, a click jumps to that slider. Chips at the top right pick
+-- the kind of tooltip. A tall tooltip is scaled down to fit the strip.
 function extras.TooltipSample(parent)
     local host = CreateFrame("Frame", nil, parent)
-    if parent.hint and parent.SetPage and not parent.blastaTooltipHint then
-        parent.blastaTooltipHint = true
-        local setPage = parent.SetPage
-        function parent.SetPage(page)
-            setPage(page)
-            parent.hint:SetShown(not host:IsShown())
-        end
-        parent.hint:Hide()
-    end
     local first, second = newPanel(host), newPanel(host)
-    return { frame = host, Parts = function() return {} end, Refresh = function(width, room)
-        if config().blastaStyle ~= "blasta" then return 0 end
-        local kind = config().blastaPreview
-        local compare = kind == "compare" and width >= 460
-        local maxWidth = compare and (width - 24) / 2 or width - 24
-        host:SetWidth(width)
-        render(first, sample(kind), maxWidth)
-        second:SetShown(compare)
-        first:ClearAllPoints()
-        if compare then
-            render(second, sample(kind, true), maxWidth)
-            first:SetPoint("TOPRIGHT", host, "TOP", -6, -6)
-            second:SetPoint("TOPLEFT", host, "TOP", 6, -6)
-        else
-            first:SetPoint("TOP", host, "TOP", 0, -6)
+    first.slack, second.slack = 10, 10
+    -- DaylightUI redraws a page's preview when a setting changes, not while
+    -- its window is resized: follow the strip's width and the window's
+    -- height here, so the tooltip grows and shrinks with the window.
+    local window = parent.GetParent and parent:GetParent()
+    local lastWidth, lastWindow, queued
+    local function relayout()
+        queued = nil
+        if not host:IsVisible() then return end
+        -- A full refresh, so the settings below move with the new height.
+        local panel = DUI.OptionsPanel
+        if panel and panel.Refresh then panel.Refresh()
+        elseif parent.Redraw then parent.Redraw(parent:GetWidth(), parent.lastRoom) end
+    end
+    local function follow()
+        if not host:IsVisible() then return end
+        local w = parent:GetWidth()
+        local h = window and window:GetHeight()
+        if w == lastWidth and h == lastWindow then return end
+        lastWidth, lastWindow = w, h
+        if not queued then
+            queued = true
+            C_Timer.After(0, relayout)
         end
-        local height = math.max(first:GetHeight(), compare and second:GetHeight() or 0) + 12
-        host:SetHeight(height)
-        return height
-    end }
+    end
+    -- A new height (a chip picked another kind, a size changed) needs the
+    -- settings below to move too: DaylightUI only lays them out again on a
+    -- full refresh, so ask for one, once.
+    local lastHeight
+    local function settle(height)
+        if lastHeight and math.abs(height - lastHeight) > 0.5 and not queued then
+            queued = true
+            C_Timer.After(0, relayout)
+        end
+        lastHeight = height
+    end
+    if parent.HookScript then parent:HookScript("OnSizeChanged", follow) end
+    if window and window.HookScript then window:HookScript("OnSizeChanged", follow) end
+    local view = config().blastaPreview
+    if view ~= "compare" and view ~= "spell" and view ~= "enemy" and view ~= "mine" then view = "item" end
+    local scale = 1
+    local T = extras.Translate
+    local function parts(panel, list)
+        if not panel:IsShown() then return end
+        local function part(region, label, keys)
+            if region and region:IsShown() then
+                list[#list + 1] = { region = region, label = T(label), keys = keys, scale = scale }
+            end
+        end
+        part(panel.title, "Name", { "blastaTitleSize" })
+        part(panel.icon, "Tooltip icon", { "blastaIcon", "blastaItemIconSize", "blastaSpellIconSize" })
+        part(panel.subtitle, "Small print", { "blastaMetaSize" })
+        part(panel.binding, "Small print", { "blastaMetaSize" })
+        part(panel.itemLevel, "Small print", { "blastaMetaSize" })
+        for i, line in ipairs(panel.shownLines or {}) do
+            local key, label = sizeKeyOf(line)
+            if line.section == "dps" and not line.small then key, label = "blastaBodySize", "Everything else" end
+            part(panel.rows[i] and panel.rows[i].left, label, { key })
+        end
+    end
+    return {
+        frame = host,
+        Views = function()
+            local out = {}
+            for i, v in ipairs(VIEWS) do out[i] = { key = v.key, label = T(v.label), on = v.key == view } end
+            return out
+        end,
+        SetView = function(key) view = key end,
+        Zoom = function() return zoom end,
+        SetZoom = function(v)
+            v = tonumber(v) or 1
+            zoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, v))
+        end,
+        zoomRange = { min = ZOOM_MIN, max = ZOOM_MAX, step = ZOOM_STEP },
+        Parts = function()
+            local list = {}
+            parts(first, list)
+            parts(second, list)
+            return list
+        end,
+        Refresh = function(width, room)
+            if config().blastaStyle ~= "blasta" then
+                host:Hide()
+                settle(0)
+                return 0
+            end
+            host:Show()
+            host:SetScale(1)
+            local compare = view == "compare" and width >= 460
+            local maxWidth = compare and (width - 24) / 2 or width - 24
+            render(first, view == "mine" and myItem() or sample(view == "mine" and "item" or view), maxWidth)
+            second:SetShown(compare)
+            if compare then render(second, sample(view, true), maxWidth) end
+            local natural = math.max(first:GetHeight(), compare and second:GetHeight() or 0)
+            -- A little taller than DaylightUI's usual strip is fine for a
+            -- tooltip; past that it shrinks, never below 85 %.
+            local windowHeight = window and window.GetHeight and tonumber(window:GetHeight()) or 0
+            local fit = math.max((tonumber(room) or 0) * 1.5, math.min(560, windowHeight * 0.42), 220)
+            -- The strip's Zoom then makes it smaller or larger from there.
+            scale = (natural > fit and math.max(0.6, fit / natural) or 1) * zoom
+            host:SetScale(scale)
+            local span = first:GetWidth() + (compare and second:GetWidth() + GAP or 0)
+            -- Never wider than the strip either.
+            if span * scale > width then scale = math.max(0.4, width / span) end
+            host:SetScale(scale)
+            local inner = width / scale
+            -- Centered, unless the view chips at the top right would cover
+            -- it: then it starts at the left, and moves under the chips
+            -- only when even that is too narrow.
+            local x = math.max(0, (inner - span) / 2)
+            local top = 0
+            if x + span > inner - CHIPS / scale then
+                x = 0
+                if span > inner - CHIPS / scale then top = CHIP_ROW / scale end
+            end
+            host:SetSize(inner, natural + top)
+            first:ClearAllPoints()
+            first:SetPoint("TOPLEFT", host, "TOPLEFT", x, -top)
+            if compare then
+                second:ClearAllPoints()
+                second:SetPoint("TOPLEFT", first, "TOPRIGHT", GAP, 0)
+            end
+            natural = natural + top
+            settle(natural * scale)
+            return natural * scale
+        end,
+    }
 end

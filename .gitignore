@@ -1,0 +1,18 @@
+# Release builds and local leftovers
+*.zip
+.release/
+
+# Development files that never ship (not in the TOC)
+Extras/BarFxFrost.lua
+Extras/DoesItDieBridge.lua
+Extras/LiquidBars.lua
+Extras/SmoothBars.lua
+Media/Liquid/
+Media/SmoothBarMasks/
+
+# Editors and OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store

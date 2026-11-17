@@ -6,12 +6,16 @@ local cast = mod and mod.ns and mod.ns.CastBar
 if not (cast and cast.Refresh and UnitCastingInfo) then return end
 
 local names = {
-    Gathering = "Sammeln", Collecting = "Sammeln", Collect = "Sammeln",
-    Opening = "Öffnen", Open = "Öffnen", Looting = "Aufheben",
+    gathering = "Sammeln", collecting = "Sammeln", collect = "Sammeln",
+    opening = "Öffnen", open = "Öffnen", looting = "Aufheben",
 }
+-- The client's own names for these, untranslated even on German clients,
+-- some with a tag after a dash ("Opening - No Text" when picking up a
+-- quest item). Case and trailing dots don't matter.
 local function translated(name)
     if (issecretvalue and issecretvalue(name)) or type(name) ~= "string" then return end
-    return names[(name:gsub("[%.…]+$", ""))]
+    local key = name:gsub("[%.…]+$", ""):gsub("%s*[%-–]%s*[Nn]o [Tt]ext$", "")
+    return names[key:lower()]
 end
 
 hooksecurefunc(cast, "Refresh", function(bar)
