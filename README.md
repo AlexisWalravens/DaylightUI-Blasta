@@ -2,7 +2,7 @@
 A quality-of-life plugin for DaylightUI in World of Warcraft.
 
 
-Contributions
+## Contributions
 
 Pull requests, bug reports, and suggestions are always welcome!
 
