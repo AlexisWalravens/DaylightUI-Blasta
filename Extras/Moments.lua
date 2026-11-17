@@ -127,6 +127,38 @@ local function band(fx, bar)
     return b
 end
 
+-- The frame whose slant clips bar's fill (the one ClipLike copied), and the
+-- fill's own clip there.
+local function clipOwner(bar)
+    local fill = bar:GetStatusBarTexture()
+    local frame = bar
+    while frame do
+        local sl = style.GetSlant(frame)
+        if sl then
+            for _, clip in ipairs(sl.clips) do
+                if clip.tex == fill then return frame, sl, clip end
+            end
+        end
+        frame = frame:GetParent()
+    end
+end
+
+-- A texture takes at most three masks. A band angled at both of its own ends
+-- (AngleFill, AngleTrail) has room for one of the frame's slanted ends only, so
+-- on a bar slanted at both ends it keeps the clip at the empty end, where its
+-- back can reach, and lets its angled lead edge stand in for the full end.
+local function makeRoom(b, bar, left, angled)
+    if not (style.GetSlant and style.ClipSpan and style.LayoutSlant) then return end
+    local frame, sl, own = clipOwner(bar)
+    if not frame then return end
+    local only = own.only or false
+    if angled and sl.side == "both" then only = left and "right" or "left" end
+    if b.clipOnly == only then return end
+    b.clipOnly = only
+    style.ClipSpan(b:GetStatusBarTexture(), nil, nil, only)
+    style.LayoutSlant(frame)
+end
+
 local function angle(b, bar, followShellOnly)
     local side, cut = style.GetFillAngle(bar)
     if followShellOnly then side, cut = nil, nil end
@@ -171,6 +203,7 @@ local function between(b, bar, a, z, geometry, followShellOnly)
         b:SetPoint("BOTTOMRIGHT", z, "BOTTOMRIGHT")
     end
     b:SetReverseFill(left)
+    makeRoom(b, bar, left, cut > 0)
     angle(b, geometry, followShellOnly)
 end
 
