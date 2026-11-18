@@ -101,16 +101,25 @@ L["Spider Silk"] = "Spinnenseide"
 L["Filters"] = "Filter"
 L["Dungeon filters"] = "Dungeonfilter"
 L["Blasta Dungeon Finder"] = "Blasta Dungeonfinder"
-L["Enable the docked dungeon filters in DaylightUI's group finder."] = "Aktiviert das angedockte Filterfenster in DaylightUIs Gruppensuche."
+L["Enable the docked dungeon filters in DaylightUI's group finder, and show groups and solo players side by side when the window is wide enough."] = "Aktiviert das angedockte Filterfenster in DaylightUIs Gruppensuche und zeigt Gruppen und Einzelspieler nebeneinander, wenn das Fenster breit genug ist."
 L["Dungeon"] = "Dungeon"
 L["All dungeons"] = "Alle Dungeons"
 L["Search dungeons"] = "Dungeon suchen"
 L["No dungeons found"] = "Keine Dungeons gefunden"
 L["Open roles"] = "Freie Rollen"
+L["Already in the group"] = "Schon in der Gruppe"
+L["Apply"] = "Bewerben"
+L["Applied"] = "Beworben"
+L["Your application note:"] = "Deine Bewerbung:"
+L["Change it with /blasta apply <text>; {level} {class} {roles} {dungeon} are filled in. /blasta apply reset brings back the default."] =
+    "Ändern mit /blasta bewerbung <Text>; {level} {class} {roles} {dungeon} werden eingesetzt. /blasta bewerbung reset stellt den Standard wieder her."
 L["Tank"] = "Tank"
 L["Playstyle"] = "Spielstil"
 L["Reset filters"] = "Filter zurücksetzen"
 L["%d groups found"] = "%d Gruppen gefunden"
+L["%d players"] = "%d Spieler"
+L["No groups match."] = "Keine passenden Gruppen."
+L["No players match."] = "Keine passenden Spieler."
 L["No groups match these filters"] = "Keine Gruppen passen zu diesen Filtern"
 L["Global portrait shape"] = "Globale Porträtform"
 L["New"] = "Neu"
@@ -438,7 +447,7 @@ L["Text left / right"] = "Text links / rechts"
 L["Text up / down"] = "Text hoch / runter"
 L["Use custom experience text color"] = "Eigene Textfarbe der EP-Leiste verwenden"
 L["Show exact money"] = "Geldbetrag vollständig anzeigen"
-L["Show the full amount of gold, silver and copper in the money data text."] = "Zeigt Gold, Silber und Kupfer im Geld-Datentext vollständig an."
+L["Show the full amount of gold, silver and copper in the money data text. It may be cut off in the minimap info panel."] = "Zeigt Gold, Silber und Kupfer im Geld-Datentext vollständig an. Im Infopanel an der Minikarte kann der Betrag abgeschnitten werden."
 L["Custom reminders"] = "Eigene Erinnerungen"
 L["Add spell"] = "Zauber hinzufügen"
 L["Add buff item"] = "Buff-Gegenstand hinzufügen"
@@ -743,9 +752,6 @@ L["Reminders"] = "Erinnerungen"
 L["Dungeon finder"] = "Dungeonfinder"
 L["Character panel"] = "Charakterpanel"
 L["Loot feed"] = "Beutefeed"
-for key, value in pairs(L) do
-    if not extras.German[key] then rawset(extras.German, key, value) end
-end
 L["Only in combat"] = "Nur im Kampf"
 L["The animation plays only while you're in a fight. Outside one the bar rests. The preview above always moves."] =
     "Die Animation läuft nur, solange du im Kampf bist. Außerhalb bleibt die Leiste ruhig. Die Vorschau darüber bewegt sich immer."
@@ -771,3 +777,21 @@ L["Plays DaylightUI's zone title for where you are, with the extras that are on.
 L["Discovered"] = "Neu entdeckt"
 L["Resting"] = "Erholung"
 L["Preview the zone title"] = "Zonentitel testen"
+L["Boat and zeppelin routes"] = "Boot- und Zeppelinrouten"
+L["Everything ahead costs"] = "Alles Kommende kostet"
+L["Daylight coins everywhere"] = "Daylight-Münzen überall"
+L["Prices from other addons (Auctionator) and the game's money boxes use DaylightUI's coins too."] =
+    "Auch Preise anderer Addons (Auctionator) und die Geldanzeigen des Spiels nutzen DaylightUIs Münzen."
+L["Sell price per piece"] = "Verkaufspreis pro Stück"
+L["On a stack, the sell price is for one piece, like Auctionator's prices; hold Shift for the whole stack. Follows Auctionator's \"Shift for stack price\" setting when it's installed."] =
+    "Bei einem Stapel gilt der Verkaufspreis für ein Stück, wie bei Auctionators Preisen; mit gedrückter Umschalttaste für den ganzen Stapel. Folgt Auctionators Einstellung „Shift für Stapelpreis“, wenn es installiert ist."
+L["RestedXP: Blasta Elegant"] = "RestedXP: Blasta Elegant"
+L["A lighter look for the RestedXP guide window: no boxes or background, just thin lines between header, steps and footer, an accent bar beside the current steps, and no logo."] =
+    "Ein leichterer Look für das RestedXP-Guidefenster: keine Kästen und kein Hintergrund, nur feine Linien zwischen Kopf, Schritten und Fußzeile, ein Akzentbalken neben den aktuellen Schritten und kein Logo."
+L["Hovering a boat or zeppelin symbol on the world map draws its route as a solid line, with an arrow where it leaves the map. On continent and world maps, a small dock symbol shows the routes the same way. Needs DaylightUI's \"Boats and zeppelins\"."] =
+    "Fährst du auf der Weltkarte über ein Boot- oder Zeppelinsymbol, wird seine Route als durchgezogene Linie gezeichnet, mit Pfeil, wo sie die Karte verlässt. Auf Kontinent- und Weltkarte zeigt ein kleines Stegsymbol die Routen genauso. Braucht DaylightUIs „Boats and zeppelins“."
+
+-- Last, so every line above reaches Blasta's German table.
+for key, value in pairs(L) do
+    if not extras.German[key] then rawset(extras.German, key, value) end
+end

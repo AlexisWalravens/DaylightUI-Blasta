@@ -1,13 +1,13 @@
 ## Interface: 16001
-## Title: Daylight Blasta
-## Notes: Additional settings, interface refinements, and skins for DaylightUI.
-## Notes-deDE: Zusätzliche Einstellungen, UI-Anpassungen und Skins für DaylightUI.
-## Version: 1.7.1
+## Title: Daylight |cff4c92ffB|r|cff34bcedl|r|cff1be7daa|r|cff36fdb8s|r|cff85fe85t|r|cffd3ff52a|r
+## Notes: Additional settings and interface refinements for DaylightUI.
+## Notes-deDE: Zusätzliche Einstellungen und UI-Anpassungen für DaylightUI.
+## Version: 1.8.0
 ## X-License: GPL-3.0-or-later
 ## SavedVariables: DaylightBlastaLanguage, DaylightBlastaLoginMessage, DaylightBlastaIntroAtLogin, DaylightBlastaIntroAtReload
 ## IconTexture: Interface\AddOns\DaylightUI_Blasta\Media\DaylightExtras.tga
 ## Dependencies: DaylightUI
-## OptionalDeps: DaylightUI_Skins, RareScanner, BugSack, DaylightUI_QoL, DaylightUI_Nameplates, DaylightUI_UnitFrames, DaylightUI_InfoPanel, DaylightUI_Quests, DaylightUI_Tooltip, DaylightUI_Buffs, DaylightUI_Bags, DaylightUI_ActionBars, Auctionator, DisenchantBuddy, DeleteCheapestItem, KeepOrToss, DoesItDie, CampingKit, LootTriage, OpenMap, Spoken, ForeverFishing, Polestar, GlowingBars, Books_on_map_Forever, GearQuestForever
+## OptionalDeps: DaylightUI_Skins, DaylightUI_QoL, DaylightUI_Nameplates, DaylightUI_UnitFrames, DaylightUI_InfoPanel, DaylightUI_Quests, DaylightUI_Tooltip, DaylightUI_Buffs, DaylightUI_Bags, DaylightUI_ActionBars, Auctionator, DisenchantBuddy
 
 Extras\Core.lua
 Extras\Edges.lua
@@ -40,9 +40,11 @@ Extras\DispelHighlights.lua
 Extras\ExperienceBar.lua
 Extras\ExperienceGain.lua
 Extras\Tooltip.lua
+Extras\Coins.lua
 Extras\BlastaTooltips.lua
 Extras\QuestTracker.lua
 Extras\Spellbook.lua
+Extras\TrainingTotal.lua
 Extras\MirrorTimers.lua
 Extras\FlightTimer.lua
 Extras\FriendDetails.lua
@@ -57,10 +59,8 @@ Extras\CraftShine.lua
 Extras\RecipeChance.lua
 Extras\AuraReminder.lua
 WorldMap.lua
+Extras\TravelRoutes.lua
 Extras\ZoneTitleExtras.lua
-Skins.lua
-BugSackSkin.lua
-DeleteCheapestSkin.lua
 Locale-deDE.lua
 MapLocale-deDE.lua
 NameplateBorders.lua
@@ -76,15 +76,4 @@ Extras\BarFxPresets.lua
 Extras\Report.lua
 ChannelTicks.lua
 Imported\Core.lua
-Imported\Packs\KeepOrToss.lua
-Imported\Packs\DoesItDie.lua
-Imported\Packs\CampingKit.lua
-Imported\Packs\LootTriage.lua
-Imported\Packs\OpenMap.lua
-Imported\Packs\Spoken.lua
-Imported\Packs\ForeverFishing.lua
-Imported\Packs\Polestar.lua
-Imported\Packs\GlowingBars.lua
-Imported\Packs\BooksOnMapForever.lua
-Imported\Packs\GearQuestForever.lua
 Imported\Options.lua

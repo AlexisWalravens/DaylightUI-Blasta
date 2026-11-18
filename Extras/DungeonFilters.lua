@@ -18,7 +18,7 @@ end
 
 extras.DungeonFinderGroup = { label = "Blasta Dungeon Finder", items = {
     { type = "toggle", key = setting, label = "Blasta Dungeon Finder", reload = true,
-        desc = "Enable the docked dungeon filters in DaylightUI's group finder.",
+        desc = "Enable the docked dungeon filters in DaylightUI's group finder, and show groups and solo players side by side when the window is wide enough.",
         get = enabled, set = function(value) return DUI:Set(ADDON, setting, value) end,
         default = function() return false end },
 } }
@@ -27,7 +27,7 @@ local nativePlaystyle = data.PlaystyleWord
 function data.PlaystyleWord(id)
     local native = nativePlaystyle(id)
     if native and id == 4 and (GetLocale() == "deDE" or extras.Language == "deDE") then
-        return "Ziehhilfe"
+        return "Mitziehen"
     end
     return native
 end
@@ -54,34 +54,130 @@ if listing and listing.Build and listing.Render then
     if listing.page then watchWidth(listing.page) end
     hooksecurefunc(listing, "Build", watchWidth)
 end
-local dungeonCategory = GROUP_FINDER_CATEGORY_ID_DUNGEONS or 2
-local roles = { "TANK", "HEALER", "DAMAGER" }
-local roleLabels = { TANK = "Tank", HEALER = "Healer", DAMAGER = "Damage" }
-local selectedRoles = {}
-local dungeon, playstyle, drawer, activityButton, clickActivity
-local opened, menuOpen, slideOffset = false, false, 0
-local width, gap, inset = 276, 8, 14
 
-local function hasRoles()
-    return next(selectedRoles) ~= nil
+-- ---------------------------------------------------------------------
+-- Filters
+-- ---------------------------------------------------------------------
+
+local dungeonCategory = GROUP_FINDER_CATEGORY_ID_DUNGEONS or 2
+
+-- An activity's suggested levels in DaylightUI's words and colors ("24-34"; dimmed
+-- when it's below you, a warning when above), as text for a label or row.
+local function hexOf(c)
+    local function byte(v) return math.floor((tonumber(v) or 1) * 255 + 0.5) end
+    return string.format("|cff%02x%02x%02x", byte(c[1]), byte(c[2]), byte(c[3]))
+end
+local function rangeText(info)
+    if type(info) ~= "table" or not (data.Levels and data.LevelColor) then return "" end
+    local ok, text = pcall(data.Levels, info)
+    if not ok or type(text) ~= "string" or text == "" then return "" end
+    local okc, c = pcall(data.LevelColor, info)
+    if not okc or type(c) ~= "table" then return text end
+    return hexOf(c) .. text .. "|r"
 end
 
+-- One range over all the activities a listing names: the lowest start, the highest end.
+local function listingRange(acts)
+    local lo, hi
+    for _, id in ipairs(acts or {}) do
+        local a = data.Activity and data.Activity(id)
+        if type(a) == "table" then
+            local l, h = a.minLevelSuggestion or 0, a.maxLevelSuggestion or 0
+            if l > 0 and (not lo or l < lo) then lo = l end
+            if h > 0 and (not hi or h > hi) then hi = h end
+        end
+    end
+    if not (lo or hi) then return "" end
+    return rangeText({ minLevelSuggestion = lo or 0, maxLevelSuggestion = hi or 0 })
+end
+local roles = { "TANK", "HEALER", "DAMAGER" }
+local roleLabels = { TANK = "Tank", HEALER = "Healer", DAMAGER = "Damage" }
+local roleKeys = { TANK = "tank", HEALER = "healer", DAMAGER = "dps" }
+local classes = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
+local selectedRoles = {}   -- open spot wanted: any of them
+local presentRoles = {}    -- already in the group: all of them
+local presentClasses = {}  -- already in the group: all of them
+local dungeons = {}        -- picked dungeons (activity ids): any of them
+local playstyle, drawer, activityButton, clickActivity
+local opened, menuOpen, slideOffset = false, false, 0
+-- Closed by hand: stays closed until Find a group is left and opened again.
+local dismissed, autoPending = false, false
+local width, gap, inset = 300, 8, 14
+
+local function hasRoles() return next(selectedRoles) ~= nil end
+local function hasDungeons() return next(dungeons) ~= nil end
+
+-- A group listed for several dungeons counts if one of them is picked.
+local function forDungeon(result)
+    for _, id in ipairs(result.acts or {}) do
+        if dungeons[id] then return true end
+    end
+    return false
+end
+
+-- "All dungeons", the one picked, or "Gnomeregan +2".
+local function dungeonText()
+    local first, count = nil, 0
+    for id in pairs(dungeons) do
+        count = count + 1
+        local name = data.ActivityName(id)
+        if not first or (name and name < first) then first = name end
+    end
+    if count == 0 then return T("All dungeons") end
+    if count == 1 then return first or T("All dungeons") end
+    return (first or "") .. "  +" .. (count - 1)
+end
+local function hasPresent() return next(presentRoles) ~= nil or next(presentClasses) ~= nil end
+
+local function plain(v)
+    if data.Plain then return data.Plain(v) end
+    return v
+end
+
+-- Classes in a group: its members, else the client's class counts.
+local function hasClass(result, token)
+    for _, member in ipairs(result.members or {}) do
+        if member.class == token then return true end
+    end
+    local counts = result.counts
+    return type(counts) == "table" and (tonumber(plain(counts[token])) or 0) > 0
+end
+
+-- Groups need an open spot for one of the chosen roles and already have every
+-- chosen role and class. Solo players only need to be able to fill a chosen role;
+-- what a group already has doesn't apply to them.
 local function matches(result)
-    if dungeon and not tContains(result.acts, dungeon) then return false end
+    if hasDungeons() and not forDungeon(result) then return false end
     if playstyle and result.style ~= data.PlaystyleWord(playstyle) then return false end
-    if hasRoles() then
-        if result.solo or result.delisted then return false end
-        local _, free = data.Places(result)
+    if result.solo then
+        if not hasRoles() then return true end
+        if result.delisted then return false end
+        local can = result.roles or {}
         for role in pairs(selectedRoles) do
-            if (free[role] or 0) > 0 then return true end
+            if can[roleKeys[role]] then return true end
         end
         return false
+    end
+    if (hasRoles() or hasPresent()) and result.delisted then return false end
+    local have, free = data.Places(result)
+    if hasRoles() then
+        local any = false
+        for role in pairs(selectedRoles) do
+            if (free[role] or 0) > 0 then any = true break end
+        end
+        if not any then return false end
+    end
+    for role in pairs(presentRoles) do
+        if (have[role] or 0) <= 0 then return false end
+    end
+    for token in pairs(presentClasses) do
+        if not hasClass(result, token) then return false end
     end
     return true
 end
 
 local function filterCount()
-    return (dungeon and 1 or 0) + (hasRoles() and 1 or 0) + (playstyle and 1 or 0)
+    return (hasDungeons() and 1 or 0) + (hasRoles() and 1 or 0) + (playstyle and 1 or 0) + (hasPresent() and 1 or 0)
 end
 
 local function refresh()
@@ -94,7 +190,8 @@ local function closeMenu()
     menuOpen = false
 end
 
-local function closeDrawer(immediate)
+local function closeDrawer(immediate, manual)
+    if manual then dismissed = true end
     if not drawer or not opened then return end
     opened = false
     closeMenu()
@@ -130,14 +227,16 @@ local function placeDrawer(page)
     end
 end
 
-local function dungeonMenu(owner)
+local dungeonMenu
+local function dungeonMenuAt(owner, inView)
     local query = drawer.search:GetText():lower()
     local ids, labels = { 0 }, { [0] = T("All dungeons") }
     for _, group in ipairs(data.Groups(dungeonCategory)) do
         for _, activity in ipairs(group.acts) do
             if activity.name:lower():find(query, 1, true) and not labels[activity.id] then
                 ids[#ids + 1] = activity.id
-                labels[activity.id] = activity.name
+                local range = rangeText(activity.info)
+                labels[activity.id] = range ~= "" and (activity.name .. "  " .. range) or activity.name
             end
         end
     end
@@ -147,13 +246,25 @@ local function dungeonMenu(owner)
     end
     drawer.search:ClearFocus()
     menuOpen = true
-    widgets.OpenMenu(owner, ids, labels, dungeon or 0, function(id)
-        menuOpen = false
-        dungeon = id ~= 0 and id or nil
-        drawer.search:SetText("")
+    -- A menu of switches: each click picks or drops a dungeon and it stays open.
+    -- "All dungeons" drops them all.
+    widgets.OpenMenu(owner, ids, labels, inView, function(id)
+        if id == 0 then wipe(dungeons) else dungeons[id] = not dungeons[id] or nil end
         refresh()
-    end, width - 2 * inset)
+        -- The list re-renders under the menu; if anything closed it on the way,
+        -- open it again where it was, so several dungeons can be ticked in a row.
+        C_Timer.After(0, function()
+            if opened and widgets.menuOwner ~= owner then dungeonMenuAt(owner, id) end
+        end)
+    end, width - 2 * inset, {
+        keepOpen = true,
+        checked = function(id)
+            if id == 0 then return not hasDungeons() end
+            return dungeons[id] == true
+        end,
+    })
 end
+dungeonMenu = function(owner) return dungeonMenuAt(owner, nil) end
 
 local function fullWidth(region, parent, y)
     region:SetPoint("TOPLEFT", parent, "TOPLEFT", inset, -y)
@@ -167,6 +278,28 @@ local function heading(parent, text, y)
     style.InkText(label, "VALUE")
 end
 
+local function className(token)
+    local names = LOCALIZED_CLASS_NAMES_MALE
+    return (type(names) == "table" and names[token]) or (token:sub(1, 1) .. token:sub(2):lower())
+end
+
+-- A row of equal buttons, `columns` to a line. Returns the y under the last line.
+local function grid(panel, keys, columns, y, label, onClick)
+    local buttons = {}
+    local w = (width - 2 * inset - (columns - 1) * 4) / columns
+    for index, key in ipairs(keys) do
+        local button = widgets.Button(panel, label(key), 24)
+        button:SetWidth(w)
+        button:SetPoint("TOPLEFT", panel, "TOPLEFT", inset + ((index - 1) % columns) * (w + 4),
+            -y - math.floor((index - 1) / columns) * 28)
+        button:SetScript("OnClick", function() onClick(key) end)
+        buttons[key] = button
+    end
+    return buttons, y + math.ceil(#keys / columns) * 28
+end
+
+local function roleLabel(role) return widgets.RoleText(role, 12) .. " " .. T(roleLabels[role]) end
+
 local function buildDrawer(page)
     local panel = CreateFrame("Frame", nil, page)
     panel:SetSize(width, 350)
@@ -175,13 +308,13 @@ local function buildDrawer(page)
     panel:EnableMouse(true)
     panel:Hide()
     style.Shell(panel, { window = "GroupFinder" })
-    win.Header(panel, { compact = true, onClose = function() closeDrawer() end })
+    win.Header(panel, { compact = true, onClose = function() closeDrawer(nil, true) end })
     panel.title:SetText(T("Dungeon filters"))
 
-    heading(panel, "Dungeon", 44)
+    heading(panel, "Dungeons", 44)
     panel.search = widgets.Input(panel, { search = true, hint = T("Search dungeons"), onChange = function()
         closeMenu()
-        if panel.dungeon then panel.dungeon.text:SetText(dungeon and data.ActivityName(dungeon) or T("All dungeons")) end
+        if panel.dungeon then panel.dungeon.text:SetText(dungeonText()) end
         if panel.reset then panel.reset.SetOff(filterCount() == 0 and panel.search:GetText() == "") end
     end })
     fullWidth(panel.search, panel, 64)
@@ -190,62 +323,66 @@ local function buildDrawer(page)
     panel.dungeon:SetScript("OnClick", dungeonMenu)
     panel.search:HookScript("OnEnterPressed", function() dungeonMenu(panel.dungeon) end)
 
-    heading(panel, "Open roles", 132)
-    panel.roles = {}
-    local roleWidth = (width - 2 * inset - 8) / #roles
-    for index, role in ipairs(roles) do
-        local label = widgets.RoleText(role, 12) .. " " .. T(roleLabels[role])
-        local button = widgets.Button(panel, label, 24)
-        button:SetWidth(roleWidth)
-        button:SetPoint("TOPLEFT", panel, "TOPLEFT", inset + (index - 1) * (roleWidth + 4), -152)
-        button:SetScript("OnClick", function()
-            selectedRoles[role] = not selectedRoles[role] or nil
-            refresh()
-        end)
-        panel.roles[role] = button
-    end
+    local y = 132
+    heading(panel, "Open roles", y)
+    panel.roles, y = grid(panel, roles, 3, y + 20, roleLabel, function(role)
+        selectedRoles[role] = not selectedRoles[role] or nil
+        refresh()
+    end)
 
-    heading(panel, "Playstyle", 189)
-    panel.styles = {}
-    local styleWidth = (width - 2 * inset - 4) / 2
-    for index, id in ipairs(data.PLAYSTYLES) do
-        local label = data.PlaystyleWord(id)
-        local button = widgets.Button(panel, label, 24)
-        button:SetWidth(styleWidth)
-        button:SetPoint("TOPLEFT", panel, "TOPLEFT", inset + ((index - 1) % 2) * (styleWidth + 4),
-            -209 - math.floor((index - 1) / 2) * 28)
-        button:SetScript("OnClick", function()
-            playstyle = playstyle ~= id and id or nil
-            refresh()
-        end)
-        panel.styles[id] = button
-    end
+    y = y + 9
+    heading(panel, "Already in the group", y)
+    panel.present, y = grid(panel, roles, 3, y + 20, roleLabel, function(role)
+        presentRoles[role] = not presentRoles[role] or nil
+        refresh()
+    end)
+    panel.classes, y = grid(panel, classes, 3, y, function(token)
+        return win.Parts.Hex({ style.ClassTextColor(token) }) .. className(token) .. "|r"
+    end, function(token)
+        presentClasses[token] = not presentClasses[token] or nil
+        refresh()
+    end)
+
+    y = y + 9
+    heading(panel, "Playstyle", y)
+    panel.styles, y = grid(panel, data.PLAYSTYLES, 2, y + 20, data.PlaystyleWord, function(id)
+        playstyle = playstyle ~= id and id or nil
+        refresh()
+    end)
+
+    y = y + 12
     local reset = widgets.Button(panel, T("Reset filters"), 24)
-    fullWidth(reset, panel, 277)
+    fullWidth(reset, panel, y)
     reset:SetScript("OnClick", function()
-        dungeon, playstyle = nil, nil
+        playstyle = nil
+        wipe(dungeons)
         wipe(selectedRoles)
+        wipe(presentRoles)
+        wipe(presentClasses)
         panel.search:SetText("")
         refresh()
     end)
     panel.reset = reset
     panel.count = style.Text(panel, style.SIZE.body, "CENTER")
-    fullWidth(panel.count, panel, 321)
+    fullWidth(panel.count, panel, y + 44)
     style.InkText(panel.count, "LABEL")
+    panel:SetHeight(y + 73)
     page:HookScript("OnHide", function() closeDrawer(true) end)
     return panel
 end
 
 local function paintDrawer()
     if not drawer then return end
-    drawer.dungeon.text:SetText(dungeon and data.ActivityName(dungeon) or T("All dungeons"))
+    drawer.dungeon.text:SetText(dungeonText())
     for role, button in pairs(drawer.roles) do button.SetActive(selectedRoles[role] == true) end
+    for role, button in pairs(drawer.present) do button.SetActive(presentRoles[role] == true) end
+    for token, button in pairs(drawer.classes) do button.SetActive(presentClasses[token] == true) end
     for id, button in pairs(drawer.styles) do button.SetActive(playstyle == id) end
     drawer.reset.SetOff(filterCount() == 0 and drawer.search:GetText() == "")
 end
 
 local function toggleDrawer(page)
-    if opened then return closeDrawer() end
+    if opened then return closeDrawer(nil, true) end
     drawer = drawer or buildDrawer(page)
     win.Feel.Settle(drawer)
     drawer:Hide()
@@ -271,7 +408,21 @@ hooksecurefunc(browse, "PaintChips", function(page)
             elseif clickActivity then clickActivity(self, ...) end
         end)
     end
+    if not page.blastaAutoHook then
+        page.blastaAutoHook = true
+        page:HookScript("OnHide", function() dismissed = false end)
+    end
     if browse.cat ~= dungeonCategory then return closeDrawer(true) end
+    -- Opens with Find a group (and on going back to Dungeons), unless closed by hand.
+    if not opened and not dismissed and not autoPending and page:IsVisible() then
+        autoPending = true
+        C_Timer.After(0, function()
+            autoPending = false
+            if not opened and not dismissed and enabled() and browse.cat == dungeonCategory and page:IsVisible() then
+                toggleDrawer(page)
+            end
+        end)
+    end
     local count = filterCount()
     activityButton.text:SetText(count == 0 and T("Filters") or T("Filters") .. " (" .. count .. ")")
     activityButton.FitWidth(86)
@@ -279,32 +430,440 @@ hooksecurefunc(browse, "PaintChips", function(page)
     paintDrawer()
 end)
 
+-- ---------------------------------------------------------------------
+-- Two columns: groups on the left, solo players on the right
+-- ---------------------------------------------------------------------
+
+local Parts = win.Parts
+local L = DUI.L
+local card = DUI.Social and DUI.Social.Detail
+local TWO_MIN = 600   -- list width (without the detail card) from which two columns fit
+local COLUMN_GAP = 20 -- room between the columns, the left one's scroll bar sits in it
+local twoColumns = Parts and Parts.Stack and Parts.Hex and card and card.REST
+    and lfg.Rows and lfg.Rows.Row and lfg.Rows.Named and lfg.Rows.Badges and lfg.Rows.Age
+    and lfg.Rows.Tip and lfg.Rows.Menu and browse.Seek and browse.PaintDetail and browse.Toggle
+    and browse.Width and data.ROLES and data.ROLE_KEY and data.Entry and data.CanInvite
+
+-- DaylightUI's role squares above the list (Browse.need), as in Browse.lua.
+local function wanted(r)
+    if next(browse.need or {}) == nil or r.mine then return true end
+    if r.solo then
+        local can = r.roles or {}
+        for role in pairs(browse.need) do if can[data.ROLE_KEY[role]] then return true end end
+        return false
+    end
+    local _, open = data.Places(r)
+    for role in pairs(browse.need) do if (open[role] or 0) > 0 then return true end end
+    return false
+end
+
+-- One listing, built the way Browse.lua builds its rows.
+local function rowOf(s, r)
+    local Rows = lfg.Rows
+    local who = Rows.Named(r.leader.name, r.leader.class)
+    local sub = who
+    local hex = Parts.Hex
+    if type(r.leader.level) == "number" then sub = sub .. "  " .. hex({ style.Accent() }) .. r.leader.level .. "|r" end
+    if r.leader.zone then sub = sub .. "  ·  " .. hex(style.INK.WARN) .. r.leader.zone .. "|r" end
+    if r.style then sub = sub .. "  ·  " .. hex(r.styleInk or style.INK.LABEL) .. r.style .. "|r" end
+    return Rows.Row(s, { kind = "group", height = r.note and Rows.GROUP_NOTE or Rows.GROUP, result = r, sep = true,
+        text = r.mine and (L["Your listing"] .. ": " .. r.text) or r.text,
+        color = style.INK.VALUE,
+        sub = sub, note = r.note, roles = Rows.Badges(r), age = Rows.Age(r.age), dim = r.delisted,
+        picked = browse.open == r.id,
+        onEnter = function(b) Rows.Tip(b, r) end,
+        onClick = function() browse.Toggle(r.id) end,
+        onMenu = function(b) if not r.mine then Rows.Menu(b, r.leader.name, data.CanInvite(r)) end end })
+end
+
+local function wide(page)
+    return page.stack:Width() >= TWO_MIN
+end
+
+local function columns(page)
+    if page.blastaColumns then return page.blastaColumns[1], page.blastaColumns[2] end
+    local main = page.stack
+    local function make(left)
+        local s = Parts.Stack(page, { top = browse.TOP, bottom = card.REST })
+        s.scroll:ClearAllPoints()
+        if left then
+            s.scroll:SetPoint("TOPLEFT", main.scroll, "TOPLEFT", 0, 0)
+            s.scroll:SetPoint("BOTTOMRIGHT", main.scroll, "BOTTOM", -COLUMN_GAP / 2, 0)
+        else
+            s.scroll:SetPoint("TOPLEFT", main.scroll, "TOP", COLUMN_GAP / 2, 0)
+            s.scroll:SetPoint("BOTTOMRIGHT", main.scroll, "BOTTOMRIGHT", 0, 0)
+        end
+        -- Half of what the full list would get, including a resize still under way.
+        function s.Width() return math.max(1, math.floor((main:Width() - COLUMN_GAP) / 2)) end
+        s.scroll:Hide()
+        return s
+    end
+    local left, right = make(true), make(false)
+    page.blastaColumns = { left, right }
+    -- A resize drag only stretches rows (Lfg.Resized): stretch both columns too, and
+    -- switch between one and two columns as soon as the width crosses the line.
+    local stretch = main.Stretch
+    local flipping = false
+    function main.Stretch(self, ...)
+        stretch(self, ...)
+        if page.blastaTwo then left:Stretch(); right:Stretch() end
+        if not flipping and wide(page) ~= (page.blastaTwo == true) then
+            flipping = true
+            C_Timer.After(0, function()
+                flipping = false
+                if page:IsVisible() then browse.Render(page, true) end
+            end)
+        end
+    end
+    return left, right
+end
+
+-- Shows the columns in place of DaylightUI's single list, or gives it back.
+local function useColumns(page, on)
+    if (page.blastaTwo == true) == on then return end
+    local left, right = columns(page)
+    local main = page.stack
+    page.blastaTwo = on or nil
+    if on then
+        main:Begin()
+        main:End()
+        page.blastaWheel = main.scroll:IsMouseWheelEnabled()
+        main.scroll:EnableMouseWheel(false)
+        left.scroll:Show()
+        right.scroll:Show()
+    else
+        for _, s in ipairs({ left, right }) do
+            s:Begin()
+            s:End()
+            s.scroll:Hide()
+        end
+        main.scroll:EnableMouseWheel(page.blastaWheel ~= false)
+    end
+end
+
+local function twoRender(page, keep)
+    browse.PaintChips(page)
+    local left, right = columns(page)
+    useColumns(page, true)
+    local atLeft, atRight = keep and left:Scrolled() or 0, keep and right:Scrolled() or 0
+    left:Begin()
+    right:Begin()
+    browse.shown, browse.rowList = {}, {}
+    local list = browse.searching and {} or (browse.results or {})
+    local groups, solo = {}, {}
+    -- Delisted: the last search still includes the player's listing until the next one.
+    local listed = data.Entry() ~= nil
+    for _, r in ipairs(list) do
+        if browse.act and not tContains(r.acts, browse.act) then
+            -- not the selected activity
+        elseif not wanted(r) then
+            -- not a role asked for
+        elseif r.mine and not listed then
+            if browse.open == r.id then browse.open = nil end
+        else
+            local into = r.solo and solo or groups
+            if r.mine then table.insert(into, 1, r) else into[#into + 1] = r end
+        end
+    end
+    local ready = browse.searched and browse.cat and not browse.searching and not browse.failed
+    local function fill(s, label, items, empty)
+        if ready or #items > 0 then
+            s:Section(label .. "  " .. #items)
+            for _, r in ipairs(items) do
+                browse.shown[r.id] = r
+                browse.rowList[#browse.rowList + 1] = rowOf(s, r)
+            end
+            if #items == 0 then s:Text(empty, { color = style.INK.LABEL }) end
+        end
+        return s:End()
+    end
+    local leftPieces = fill(left, L["Groups"], groups, T("No groups match."))
+    local rightPieces = fill(right, L["Solo players"], solo, T("No players match."))
+    -- Lift in side by side.
+    local pieces = {}
+    for i = 1, math.max(#leftPieces, #rightPieces) do
+        if leftPieces[i] then pieces[#pieces + 1] = leftPieces[i] end
+        if rightPieces[i] then pieces[#pieces + 1] = rightPieces[i] end
+    end
+    page.pieces = pieces
+    if browse.fresh then win.Feel.Stagger(pieces, 0) end
+    browse.fresh = nil
+    if browse.open and not browse.shown[browse.open] then browse.open = nil end
+    local note
+    if browse.searching then note = L["Searching..."]
+    elseif browse.failed then note = L["The search failed. Try Refresh."]
+    elseif not browse.cat then note = L["Nothing to find at your level yet."]
+    elseif #list == 0 and not browse.searched then note = L["Pick a category to look for groups."] end
+    page.note:SetText(note or "")
+    page.note:SetShown(note ~= nil)
+    browse.Seek(page, browse.searching == true)
+    left:ScrollTo(atLeft)
+    right:ScrollTo(atRight)
+    browse.PaintDetail()
+end
+
 local render = browse.Render
+local function draw(page, ...)
+    page = page or browse.page
+    if twoColumns and page and page.stack then
+        if wide(page) then return twoRender(page, ...) end
+        if page.blastaTwo then useColumns(page, false) end
+    end
+    return render(page, ...)
+end
+
 function browse.Render(page, ...)
-    if not enabled() or browse.cat ~= dungeonCategory then return render(page, ...) end
+    if not enabled() then return render(page, ...) end
     page = page or browse.page
     if not page then return render(page, ...) end
-    local active = filterCount() > 0
-    if not active and not opened then return render(page, ...) end
+    local active = browse.cat == dungeonCategory and filterCount() > 0
+    -- Each listing's activity with its level range, once per search result.
+    for _, result in ipairs(browse.results or {}) do
+        if type(result) == "table" and not result.blastaBase and type(result.text) == "string" then
+            result.blastaBase = result.text
+            local range = listingRange(result.acts)
+            if range ~= "" then result.text = result.text .. "  " .. range end
+        end
+    end
     local original = browse.results
-    local filtered, groups = {}, 0
+    local filtered, groups, players = {}, 0, 0
     if not browse.searching then
         for _, result in ipairs(original or {}) do
             if not active or matches(result) then
                 if active then filtered[#filtered + 1] = result end
-                if not result.mine and not result.solo then groups = groups + 1 end
+                if not result.mine then
+                    if result.solo then players = players + 1 else groups = groups + 1 end
+                end
             end
         end
     end
     if active then browse.results = filtered end
-    local ok, err = pcall(render, page, ...)
+    local ok, err = pcall(draw, page, ...)
     if active and browse.results == filtered then browse.results = original end
     if not ok then error(err, 0) end
     if drawer then
-        drawer.count:SetText(browse.searching and DUI.L["Searching..."] or T("%d groups found"):format(groups))
+        drawer.count:SetText(browse.searching and DUI.L["Searching..."]
+            or T("%d groups found"):format(groups) .. "  ·  " .. T("%d players"):format(players))
     end
-    if active and #filtered == 0 and not browse.searching and not browse.failed and browse.searched then
+    if active and not page.blastaTwo and #filtered == 0 and not browse.searching and not browse.failed and browse.searched then
         page.note:SetText(T("No groups match these filters"))
         page.note:Show()
     end
 end
+
+-- ---------------------------------------------------------------------
+-- Window width: Find a group opens wide enough for two columns
+-- ---------------------------------------------------------------------
+
+local lfgWindow = lfg.Window
+local WIDE = 840   -- window width the Find a group page opens at, before a card opens
+
+local function savedWidth()
+    local w = tonumber(DUI:Get(ADDON, "finderWidth"))
+    if w then return math.max(lfgWindow.W or 460, w) end
+    return WIDE
+end
+
+local function cardRoom()
+    return lfgWindow.side and lfgWindow.side.find and lfgWindow.Span and lfgWindow.Span() or 0
+end
+
+local function findWidth() return savedWidth() + cardRoom() end
+
+-- Find a group keeps its own width, so List yourself and Who keep theirs. The height
+-- stays shared with them, as in DaylightUI.
+local function widenWindow()
+    local f = lfgWindow and lfgWindow.frame
+    if not (twoColumns and f and enabled()) or f.blastaWide then return end
+    f.blastaWide = true
+    local def = f.defs and f.defs.find
+    if def then def.w = findWidth() end
+    local userSize = f.userSize
+    if userSize then
+        f.userSize = function(id)
+            local w, h = userSize(id)
+            if id == "find" then return findWidth(), h or lfgWindow.H end
+            return w, h
+        end
+    end
+    local sizer = lfgWindow.sizer
+    if sizer and sizer.Size then
+        local size = sizer.Size
+        function sizer.Size(id)
+            local w, h = size(id)
+            if id == "find" then w = findWidth() end
+            return w, h
+        end
+    end
+    if lfgWindow.SetSide then
+        hooksecurefunc(lfgWindow, "SetSide", function(id)
+            if id == "find" and f.defs and f.defs.find then f.defs.find.w = findWidth() end
+        end)
+    end
+    local function reopen()
+        C_Timer.After(0, function()
+            if f.current == "find" and win.IsOpen and win.IsOpen(f) and lfgWindow.ShowTab then lfgWindow.ShowTab("find") end
+        end)
+    end
+    -- A drag on Find a group saves its width for Blasta and leaves DaylightUI's
+    -- shared width as it was. Right-click on the grip resets it.
+    local grip = f.grip
+    if grip then
+        local before
+        grip:HookScript("OnMouseDown", function(_, button)
+            before = nil
+            if button ~= "LeftButton" or f.current ~= "find" then return end
+            local db = lfg.module and lfg.module.db
+            local s = db and type(db.sizes) == "table" and db.sizes.all
+            before = { width = type(s) == "table" and s[1] or nil }
+        end)
+        grip:HookScript("OnMouseUp", function(_, button)
+            if f.current ~= "find" then before = nil return end
+            if button == "RightButton" then
+                DUI:Set(ADDON, "finderWidth", nil)
+                reopen()
+                return
+            end
+            if not before then return end
+            DUI:Set(ADDON, "finderWidth", math.floor((f:GetWidth() or WIDE) - cardRoom() + 0.5))
+            local db = lfg.module and lfg.module.db
+            local s = db and type(db.sizes) == "table" and db.sizes.all
+            if type(s) == "table" then s[1] = before.width or lfgWindow.W or s[1] end
+            before = nil
+        end)
+    end
+    if DUI.Movers and DUI.Movers.onResetAll then
+        table.insert(DUI.Movers.onResetAll, function()
+            DUI:Set(ADDON, "finderWidth", nil)
+            reopen()
+        end)
+    end
+end
+
+if twoColumns and lfgWindow then
+    if lfgWindow.Build then hooksecurefunc(lfgWindow, "Build", widenWindow) end
+    widenWindow()
+end
+
+-- ---------------------------------------------------------------------
+-- One-click application: a "Apply" button on a group's card whispers its
+-- leader a short note (level, class, roles, dungeon). Shift-click opens the
+-- whisper with the note in it to change first. /blasta apply <text> sets your
+-- own note; {level} {class} {roles} {dungeon} are filled in.
+-- ---------------------------------------------------------------------
+
+local german = GetLocale() == "deDE" or extras.Language == "deDE"
+local DEFAULT_NOTE = german and "Hallo! Stufe {level} {class} ({roles}) – darf ich bei {dungeon} mit?"
+    or "Hi! Level {level} {class} ({roles}) – can I join you for {dungeon}?"
+local ROLE_WORDS = german and { tank = "Tank", healer = "Heiler", dps = "DD" }
+    or { tank = "Tank", healer = "Healer", dps = "DPS" }
+local applied = {}   -- listing id -> true, this session
+
+local function note()
+    local own = DUI:Get(ADDON, "applyText")
+    return (type(own) == "string" and own ~= "") and own or DEFAULT_NOTE
+end
+
+local function noteFor(r)
+    local level = UnitLevel and UnitLevel("player")
+    local class = UnitClass and UnitClass("player")
+    local roles = {}
+    local mine = data.Roles and data.Roles() or {}
+    for _, key in ipairs({ "tank", "healer", "dps" }) do
+        if mine[key] then roles[#roles + 1] = ROLE_WORDS[key] end
+    end
+    -- The picked dungeons the group goes to, else everything it's listed for.
+    local names = {}
+    for _, id in ipairs(r.acts or {}) do
+        if dungeons[id] then names[#names + 1] = data.ActivityName(id) end
+    end
+    local dungeon = #names > 0 and table.concat(names, ", ") or (r.blastaBase or r.text or "")
+    dungeon = dungeon:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+    local text = note()
+    text = text:gsub("{level}", tostring(type(level) == "number" and level or ""))
+    text = text:gsub("{class}", tostring(class or ""))
+    text = text:gsub("{dungeon}", (dungeon:gsub("%%", "%%%%")))
+    if #roles > 0 then
+        text = text:gsub("{roles}", table.concat(roles, "/"))
+    else
+        text = text:gsub("%s*%({roles}%)", ""):gsub("{roles}", "")
+    end
+    return text
+end
+
+local function apply(r)
+    local name = r and r.leader and r.leader.name
+    if type(name) ~= "string" or name == "" then return end
+    local text = noteFor(r)
+    if IsShiftKeyDown and IsShiftKeyDown() then
+        if ChatFrame_OpenChat then ChatFrame_OpenChat("/w " .. name .. " " .. text) end
+        return
+    end
+    if C_ChatInfo and C_ChatInfo.SendChatMessage then
+        C_ChatInfo.SendChatMessage(text, "WHISPER", nil, name)
+    elseif SendChatMessage then
+        SendChatMessage(text, "WHISPER", nil, name)
+    else
+        return
+    end
+    applied[r.id] = true
+    if browse.PaintDetail then browse.PaintDetail() end
+end
+
+if type(browse.Spec) == "function" then
+    local spec = browse.Spec
+    function browse.Spec(r)
+        local out = spec(r)
+        if not (enabled() and type(out) == "table" and type(out.buttons) == "table" and type(r) == "table") then return out end
+        if r.mine or r.solo or type(r.leader) ~= "table" or type(r.leader.name) ~= "string" then return out end
+        -- Whisper stays as it is (a blank whisper); Apply comes first. A listing
+        -- that's gone shows Apply greyed out.
+        for _, b in ipairs(out.buttons) do b.primary = false end
+        local done = applied[r.id] == true
+        table.insert(out.buttons, 1, { text = done and T("Applied") or T("Apply"), primary = true,
+            off = done or r.delisted == true, onClick = function() apply(r) end })
+        return out
+    end
+end
+
+extras.SlashHandlers = extras.SlashHandlers or {}
+table.insert(extras.SlashHandlers, function(msg)
+    local word, rest = msg:match("^%s*(%S+)%s*(.-)%s*$")
+    word = word and word:lower()
+    if word ~= "apply" and word ~= "bewerbung" then return false end
+    local say = DUI.Print or print
+    if rest == "" then
+        say(T("Your application note:") .. " " .. note())
+        say(T("Change it with /blasta apply <text>; {level} {class} {roles} {dungeon} are filled in. /blasta apply reset brings back the default."))
+    elseif rest:lower() == "reset" then
+        DUI:Set(ADDON, "applyText", nil)
+        say(T("Your application note:") .. " " .. note())
+    else
+        DUI:Set(ADDON, "applyText", rest)
+        say(T("Your application note:") .. " " .. note())
+    end
+    return true
+end)
+
+-- ---------------------------------------------------------------------
+-- The group card beside the list: DaylightUI gives it a faint white wash
+-- (Social's Detail.FILL), so it reads lighter than the rest of the window.
+-- Here it's see-through like the list, parted from it by a thin rule.
+-- ---------------------------------------------------------------------
+
+local function plainCard()
+    local page = browse.page
+    local card = page and page.detail
+    local f = card and card.frame
+    if type(f) ~= "table" or f.blastaPlain then return end
+    f.blastaPlain = true
+    if f.fill and f.fill.SetAlpha then f.fill:SetAlpha(0) end
+    local rule = f:CreateTexture(nil, "BORDER")
+    rule:SetWidth(DUI.Pixel and DUI.Pixel.Px and DUI.Pixel.Px(f, 1) or 1)
+    rule:SetPoint("TOPRIGHT", f, "TOPLEFT", -6, 0)
+    rule:SetPoint("BOTTOMRIGHT", f, "BOTTOMLEFT", -6, 0)
+    local c = style.INK.LABEL
+    rule:SetColorTexture(c[1], c[2], c[3], 0.2)
+end
+
+if type(browse.PaintDetail) == "function" then hooksecurefunc(browse, "PaintDetail", plainCard) end

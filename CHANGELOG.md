@@ -1,3 +1,55 @@
+# Daylight Blasta 1.8.0 — 2026-11-18
+
+## Info panel
+
+- **Exact money is now opt-in** — The full gold, silver and copper amount no longer shows by default, since it often got cut off in the minimap info panel. Turn it on under **Info panel → Data text colors → Show exact money**.
+
+## Dungeon finder
+
+- **Side by side** — Groups and solo players show in two columns. Find a group opens wider for it, and below about 600 px of list width it goes back to one column, also while you drag the window smaller. Find a group remembers its own width; right-click the resize grip to reset it.
+- **Opens by itself** — The filter window now opens with Find a group on Dungeons. Closed by hand, it stays closed until you open Find a group again.
+- **Several dungeons** — The dungeon list in the filter window now takes several picks. It stays open while you tick dungeons, and groups for any of them show. "All dungeons" clears the picks; the button reads e.g. "Gnomeregan +2".
+- **Already in the group** — The filter window has a new section to pick roles and classes a group must already have. Pick several and only groups with all of them show.
+- **Solo players and open roles** — With open roles picked, solo players who can fill one of them still show instead of being hidden.
+- **Level ranges** — Every dungeon in the filter list and every listing in Find a group shows its suggested levels in DaylightUI's colors (dimmed below you, a warning above). A listing for several dungeons shows one range over all of them.
+- **Apply** — A group's card has an "Apply" button: it whispers the leader a short note with your level, class, roles and the dungeon (the picked ones when it's listed for several), then reads "Applied". Shift-click opens the whisper with the note to change first. `/blasta apply <text>` (or `/blasta bewerbung`) sets your own note; {level} {class} {roles} {dungeon} are filled in, `reset` brings back the default.
+- **Group card** — The card beside the list no longer has a lighter background: it's see-through like the rest of the window, with a thin line between list and card.
+- **Playstyle** — The German "Ziehhilfe" now reads "Mitziehen".
+
+## Training
+
+- **Everything ahead** — The Training page's footer shows, beside "Learn now costs", what all spells still ahead cost together: learnable now, the next levels and later, pet spells and those waiting on a requirement (not talent spells, weapon skills, known or ignored ones). Red when it's more than you carry.
+
+## Shadow Word: Death
+
+- **Slanted marker** — On a slanted target frame or nameplate the kill estimate's line and glow now lean with the health bar's angled edge (also with "Reverse unit frame slant"), instead of standing straight.
+
+## Tooltips and money
+
+- **Daylight coins everywhere** — Prices other addons add to tooltips (Auctionator's auction and vendor prices), every money box the game updates (merchant, mail, quests) and Auctionator's auction house lists now use DaylightUI's coins. Switch: **Tooltip → Daylight coins everywhere**, on by default.
+- **Sell price per piece** — On a stack the game's sell price was for the whole stack while Auctionator's prices are per piece. The sell price now follows Auctionator: one piece, and "Sell price x20" for the stack with Shift (or the other way round, by Auctionator's "Shift for stack price" setting). Switch: **Tooltip → Sell price per piece**, on by default.
+
+## World map
+
+- **Boat and zeppelin routes** — Builds on DaylightUI's "Boats and zeppelins" symbols. Hovering one on a zone map draws its route as a bold solid line, with an arrow where it leaves the map. On continent and world maps a small dock symbol stands at each dock and shows its routes on hover. Lines are solid gold with a thin dark edge so they read on any map. Switch: **Game window skins → World map → Boat and zeppelin routes**, on by default.
+
+## Zone title
+
+- **German texts** — "Discovered", "Resting" and a few other late additions (Only in combat, Kills to the next level, Blasta report, the zone title settings) now show in German. They never reached the German table before.
+
+## Addon list
+
+- **Blasta colors** — "Blasta" now shows in its blue-to-lime gradient in the game's addon list.
+
+## Removed
+
+- **Addon skins** — Blasta no longer skins other addons (RareScanner, BugSack, Delete Cheapest Item, Keep or Toss, Does It Die, Camping Kit, Loot Triage, OpenMap, Spoken, Forever Fishing, Polestar, Glowing Bars, Books on Map and GearQuest). The AddonSkins page in Blasta's settings is gone, and skin switches other plugins add stay on DaylightUI's own Game window skins page. Please use **AddonSkins by Glowey_** for these skins. Old skin settings stay in your profile but do nothing.
+
+## Fixes
+
+- **Frame shape** — The "Frame shape" option no longer errors when DaylightUI's corner setting is empty.
+- **Nameplate shape** — Angled nameplates no longer depend on DaylightUI's border setting being filled in.
+
 # Daylight Blasta 1.7.1 — 2026-11-17
 
 Works with DaylightUI 1.9.3.

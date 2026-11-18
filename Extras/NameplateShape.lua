@@ -97,7 +97,8 @@ function Body.Layout(body, cutTop, cutBottom)
     local opts = body.shellOpts or {}
     body.shellOpts = opts
     local o = body.opts
-    local border = DUI.DB.General().borderPx
+    -- Another addon can leave the general setting empty (after logout strips defaults).
+    local border = tonumber(DUI.DB.General().borderPx) or (DUI.DB.GENERAL_DEFAULTS and DUI.DB.GENERAL_DEFAULTS.borderPx) or 1
     local own = o.borderPx
     opts.borderPx = type(own) == "function" and own(border) or own or border
     opts.flat, opts.noBevel, opts.noBorder = o.flat, true, o.noBorder

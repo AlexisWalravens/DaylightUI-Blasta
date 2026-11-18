@@ -377,12 +377,6 @@ function extras.MoveSettings()
                     local item = group.items[i]
                     if original[item] then
                         i = i + 1
-                    elseif name == "Skins" and item.type == "toggle" and not item.blastaKeepInSkins then
-                        -- Blasta's skins for other addons list on Blasta's AddonSkins page.
-                        table.remove(group.items, i)
-                        local row = bridge(mod, item)
-                        row.hidden = function() return not mod.enabled end
-                        skinSwitches[#skinSwitches + 1] = row
                     else
                         item.blastaDestination, item.blastaCompanion = nil, nil
                         if picker then followPick(group, item) end

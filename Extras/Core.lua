@@ -354,7 +354,8 @@ end
 
 function extras.FrameShapeOption(addon, root, getConfig)
     local key = root .. ".frameShape"
-    local function inherited() return DUI.DB.General().cornerPx > 0 and "rounded" or "square" end
+    -- Another addon can leave the general setting empty (e.g. after logout strips defaults).
+    local function inherited() return (tonumber(DUI.DB.General().cornerPx) or DUI.DB.GENERAL_DEFAULTS.cornerPx or 0) > 0 and "rounded" or "square" end
     return {
         type = "dropdown", key = key, label = "Frame shape",
         values = { square = "Square", rounded = "Rounded" }, order = { "square", "rounded" },

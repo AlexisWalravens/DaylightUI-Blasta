@@ -9,7 +9,8 @@ local defaultColor = { 0.88, 0.72, 0.46 }
 local defaults = {
     selected = "system",
     entries = {},
-    exactMoney = true,
+    -- Off by default: the full amount often does not fit the minimap info panel.
+    exactMoney = false,
     good = { 0.42, 0.87, 0.46 },
     medium = { 0.98, 0.78, 0.30 },
     bad = { 1, 0.36, 0.33 },
@@ -28,7 +29,7 @@ end
 local shortMoney = DT.ShortMoney
 if type(shortMoney) == "function" and type(DUI.MoneyString) == "function" then
     function DT.ShortMoney(copper)
-        if config().exactMoney ~= false then return DUI.MoneyString(copper) end
+        if config().exactMoney == true then return DUI.MoneyString(copper) end
         return shortMoney(copper)
     end
 end
@@ -152,7 +153,7 @@ end
 local countGold = DT.CountGold
 if type(countGold) == "function" then
     function DT.CountGold(slot, changed)
-        if config().exactMoney ~= false then
+        if config().exactMoney == true then
             -- Exact money exposes every intermediate copper value. Use the
             -- native first-read path to settle the amount and stop the tween.
             slot.rollShown = nil
@@ -268,7 +269,7 @@ function extras.DataTextColorPage()
     local group = card()
     local money = { label = "Gold", items = {
         { type = "toggle", key = root .. ".exactMoney", label = "Show exact money",
-            desc = "Show the full amount of gold, silver and copper in the money data text." },
+            desc = "Show the full amount of gold, silver and copper in the money data text. It may be cut off in the minimap info panel." },
     } }
     for _, g in ipairs({ group, money }) do
         for _, row in ipairs(g.items) do

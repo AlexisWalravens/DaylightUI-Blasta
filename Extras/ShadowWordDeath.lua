@@ -79,6 +79,48 @@ local function canCast(id)
 end
 
 local WHITE = "Interface\\Buttons\\WHITE8x8"
+
+-- The health bar's angled moving edge (Style.AngleFill), so the marker leans with
+-- it on a slanted frame. A reversed slant (Blasta's "Reverse unit frame slant",
+-- Edges.ReverseFillMask) leans the other way; that's noted on the fill's mask.
+local flipped = setmetatable({}, { __mode = "k" }) -- fill mask -> true when reversed
+if style.GetFillMask and type(style.AngleFill) == "function" then
+    local angleFill = style.AngleFill
+    function style.AngleFill(bar, ...)
+        local m = style.GetFillMask(bar)
+        if m then flipped[m] = nil end
+        return angleFill(bar, ...)
+    end
+    local Edges = extras.Edges
+    if Edges and type(Edges.ReverseFillMask) == "function" then
+        hooksecurefunc(Edges, "ReverseFillMask", function(bar)
+            local m = style.GetFillMask(bar)
+            if m then flipped[m] = true end
+        end)
+    end
+end
+
+-- How far the top and the bottom of the edge sit from its straight line, in the
+-- bar's units: one of them 0, the other the cut toward the bar's start.
+local function lean(bar, growLeft)
+    local m = style.GetFillMask and style.GetFillMask(bar)
+    local cut = m and m.added and type(m.cut) == "number" and m.cut > 0 and m.cut or 0
+    if cut == 0 then return 0, 0 end
+    local back = growLeft and cut or -cut
+    local under = (m.under == true) ~= (flipped[m] == true)
+    if under then return back, 0 end
+    return 0, back
+end
+
+-- A texture's top and bottom moved sideways (the client's vertex offsets:
+-- 1 upper left, 2 lower left, 3 upper right, 4 lower right).
+local function shear(tex, top, bottom)
+    if not tex.SetVertexOffset then return end
+    pcall(tex.SetVertexOffset, tex, 1, top, 0)
+    pcall(tex.SetVertexOffset, tex, 3, top, 0)
+    pcall(tex.SetVertexOffset, tex, 2, bottom, 0)
+    pcall(tex.SetVertexOffset, tex, 4, bottom, 0)
+end
 local markers = setmetatable({}, { __mode = "k" })
 local function marker(bar)
     local pin = CreateFrame("StatusBar", nil, bar)
@@ -102,16 +144,23 @@ local function draw(bar, growLeft, max, current, damage, ready)
     local h, pixel = bar:GetHeight(), DUI.Pixel.Px(bar, 1)
     local edge = growLeft and "LEFT" or "RIGHT"
     local line, hot = pin.line, pin.hot
-    if pin.edge ~= edge or pin.height ~= h or pin.pixel ~= pixel then
-        pin.edge, pin.height, pin.pixel = edge, h, pixel
+    local top, bottom = lean(bar, growLeft)
+    if pin.edge ~= edge or pin.height ~= h or pin.pixel ~= pixel or pin.top ~= top or pin.bottom ~= bottom then
+        pin.edge, pin.height, pin.pixel, pin.top, pin.bottom = edge, h, pixel, top, bottom
         line:ClearAllPoints()
         line:SetPoint("TOP", pin:GetStatusBarTexture(), "TOP" .. edge)
         line:SetPoint("BOTTOM", pin:GetStatusBarTexture(), "BOTTOM" .. edge)
         line:SetWidth(pixel)
+        shear(line, top, bottom)
+        -- The glow leans the same way. Its window (it clips) is widened by the
+        -- cut, with the glow's straight side at the window's right edge.
+        local cut = math.abs(top - bottom)
+        local right = math.max(top, bottom)
         hot:ClearAllPoints()
-        hot:SetPoint("CENTER", line, "CENTER")
-        hot:SetSize(3 * pixel, h)
+        hot:SetPoint("RIGHT", line, "CENTER", right + 1.5 * pixel, 0)
+        hot:SetSize(3 * pixel + cut, h)
         hot.icon:SetSize(3 * pixel, h)
+        shear(hot.icon, top - right, bottom - right)
         hot.bar:SetHeight(h)
         pin:SetReverseFill(growLeft)
     end
